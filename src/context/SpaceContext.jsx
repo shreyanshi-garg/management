@@ -1,4 +1,4 @@
-import { createContext, useContext, useState } from 'react'
+import { createContext, useContext, useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 
 const STORAGE_KEY = 'pm_spaces'
@@ -58,6 +58,32 @@ const SpaceContext = createContext(null)
 
 export function SpaceProvider({ children }) {
   const [spacesData, setSpacesData] = useState(loadSpaces)
+
+  // On mount, fetch spaces from Supabase to sync passwordHash/recoveryEmail across devices
+  useEffect(() => {
+    async function syncFromSupabase() {
+      const { data, error } = await supabase.from('spaces').select('id, name, emoji, password_hash, recovery_email')
+      if (error || !data || data.length === 0) return
+
+      setSpacesData(prev => {
+        // Build a map of Supabase data keyed by id
+        const remote = Object.fromEntries(data.map(s => [s.id, s]))
+        const list = prev.list.map(local => {
+          const r = remote[local.id]
+          if (!r) return local
+          return {
+            ...local,
+            passwordHash: r.password_hash ?? local.passwordHash,
+            recoveryEmail: r.recovery_email ?? local.recoveryEmail,
+          }
+        })
+        const updated = { ...prev, list }
+        saveSpaces(updated)
+        return updated
+      })
+    }
+    syncFromSupabase()
+  }, [])
 
   const activeSpace = spacesData.active
     ? spacesData.list.find(s => s.id === spacesData.active) || null
