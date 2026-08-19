@@ -1,0 +1,119 @@
+@import "tailwindcss";
+
+@theme {
+  /* Warm cream base */
+  --color-bg: #FDF8F1;
+  --color-card: #FFFFFF;
+  --color-surface: #FBF5EC;
+  --color-text: #4A3A30;
+  --color-muted: #A6947F;
+  --color-border: #F0E6D8;
+
+  /* Primary action accent */
+  --color-terracotta: #E8703A;
+  --color-terracotta-deep: #C4551F;
+  --color-terracotta-light: #FDEEE4;
+
+  /* Pastel accents */
+  --color-rose: #FF9EBB;
+  --color-rose-deep: #E5527A;
+  --color-rose-light: #FFF0F5;
+
+  --color-lavender: #C3A6E8;
+  --color-lavender-deep: #9061C2;
+  --color-lavender-light: #F7F0FF;
+
+  --color-honey: #FFC38B;
+  --color-honey-deep: #E09B4C;
+  --color-honey-light: #FFF6EC;
+
+  --color-sky: #8FCFE0;
+  --color-sky-deep: #4A9EB8;
+  --color-sky-light: #EEFAFD;
+
+  --color-mint: #7FD8A0;
+  --color-mint-deep: #3FA968;
+  --color-mint-light: #EFFBF3;
+
+  --font-display: 'Fraunces', Georgia, serif;
+  --font-sans: 'Quicksand', system-ui, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  min-height: 100%;
+}
+
+body {
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  font-weight: 500;
+  background:
+    radial-gradient(1000px 600px at 8% -5%, #FFF3E4 0%, transparent 55%),
+    radial-gradient(900px 550px at 100% 0%, #FDEDE1 0%, transparent 50%),
+    radial-gradient(800px 700px at 50% 105%, #FBF6EA 0%, transparent 55%),
+    var(--color-bg);
+  background-attachment: fixed;
+}
+
+h1, h2, h3 {
+  font-family: var(--font-display);
+  font-optical-sizing: auto;
+  letter-spacing: -0.01em;
+}
+
+/* Pretty scrollbar */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: #EDDFC9;
+  border-radius: 99px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:hover { background: #DCCBB4; background-clip: content-box; }
+
+button, a, input, select, textarea { font-family: inherit; transition: all 0.18s ease; }
+
+input, select, textarea { color: var(--color-text); }
+input::placeholder, textarea::placeholder { color: #C6B49F; }
+
+/* Focus rings in terracotta */
+input:focus, select:focus, textarea:focus {
+  outline: none;
+  border-color: var(--color-terracotta) !important;
+  box-shadow: 0 0 0 3px rgba(232, 112, 58, 0.16);
+}
+
+/* Reusable soft card shadow */
+.soft-card {
+  background: #fff;
+  border: 1px solid #F4EADC;
+  box-shadow: 0 2px 14px rgba(150, 115, 80, 0.08);
+}
+.soft-card-hover:hover {
+  box-shadow: 0 8px 26px rgba(150, 115, 80, 0.15);
+  transform: translateY(-2px);
+}
+
+/* Nested block on a card — surface-tinted, borderless */
+.cream-card {
+  background: var(--color-surface);
+  border-radius: 20px;
+}
+
+@keyframes floaty {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+.floaty { animation: floaty 3.5s ease-in-out infinite; }
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.fade-up { animation: fadeUp 0.32s ease-out both; }
