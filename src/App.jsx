@@ -42,7 +42,15 @@ function AppInner() {
 }
 
 function SpacedApp() {
-  const { activeSpace } = useSpace()
+  const { activeSpace, loading } = useSpace()
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={{ background: 'linear-gradient(160deg,#FFF5F8 0%,#FFF9F0 50%,#F5F0FF 100%)' }}>
+        <span className="text-4xl animate-pulse">🌸</span>
+      </div>
+    )
+  }
 
   if (!activeSpace) {
     return <SpaceSelectionPage />

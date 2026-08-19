@@ -1,48 +1,13 @@
 import { createContext, useContext, useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 
-const STORAGE_KEY = 'pm_spaces'
+// Only the active-space preference is per-device; everything else lives in Supabase.
+const ACTIVE_KEY = 'pm_active_space'
 
-const DEFAULT_SPACES = {
-  active: null,
-  list: [
-    { id: 'shreyanshii', name: 'Shreyanshii', emoji: '🌷', passwordHash: null, recoveryEmail: null },
-    { id: 'sambhav', name: 'Sambhav', emoji: '✨', passwordHash: null, recoveryEmail: null },
-  ],
-}
-
-// Migrate flat keys to namespaced keys for 'shreyanshii' on first run
-function migrateIfNeeded() {
-  if (localStorage.getItem(STORAGE_KEY)) return
-  const oldKeys = ['pm_money', 'pm_timeblocks', 'pm_tasks', 'pm_goals', 'pm_health_v2']
-  oldKeys.forEach(key => {
-    const data = localStorage.getItem(key)
-    if (data) localStorage.setItem(`${key}_shreyanshii`, data)
-  })
-}
-
-function loadSpaces() {
-  migrateIfNeeded()
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    if (!raw) return DEFAULT_SPACES
-    const parsed = JSON.parse(raw)
-    // Ensure each space has the new fields
-    const list = parsed.list.map(s => ({
-      passwordHash: null,
-      recoveryEmail: null,
-      ...s,
-    }))
-    // Preserve active=null so landing page shows on fresh-ish loads
-    return { active: parsed.active ?? null, list }
-  } catch {
-    return DEFAULT_SPACES
-  }
-}
-
-function saveSpaces(data) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
-}
+const DEFAULT_SPACES = [
+  { id: 'shreyanshii', name: 'Shreyanshii', emoji: '🌷', passwordHash: null, recoveryEmail: null },
+  { id: 'sambhav', name: 'Sambhav', emoji: '✨', passwordHash: null, recoveryEmail: null },
+]
 
 async function hashPassword(password) {
   const data = new TextEncoder().encode(password)
@@ -54,80 +19,80 @@ function generateOTP() {
   return Math.floor(100000 + Math.random() * 900000).toString()
 }
 
+function rowToSpace(row) {
+  return {
+    id: row.id,
+    name: row.name,
+    emoji: row.emoji,
+    passwordHash: row.password_hash ?? null,
+    recoveryEmail: row.recovery_email ?? null,
+  }
+}
+
 const SpaceContext = createContext(null)
 
 export function SpaceProvider({ children }) {
-  const [spacesData, setSpacesData] = useState(loadSpaces)
+  const [spaces, setSpaces] = useState([])
+  const [activeId, setActiveId] = useState(() => localStorage.getItem(ACTIVE_KEY) || null)
+  const [loading, setLoading] = useState(true)
 
-  // On mount, fetch spaces from Supabase to sync passwordHash/recoveryEmail across devices
+  // Load spaces from Supabase on mount; seed defaults if table is empty
   useEffect(() => {
-    async function syncFromSupabase() {
-      const { data, error } = await supabase.from('spaces').select('id, name, emoji, password_hash, recovery_email')
-      if (error || !data || data.length === 0) return
+    async function load() {
+      const { data, error } = await supabase
+        .from('spaces')
+        .select('id, name, emoji, password_hash, recovery_email')
 
-      setSpacesData(prev => {
-        // Build a map of Supabase data keyed by id
-        const remote = Object.fromEntries(data.map(s => [s.id, s]))
-        const list = prev.list.map(local => {
-          const r = remote[local.id]
-          if (!r) return local
-          return {
-            ...local,
-            passwordHash: r.password_hash ?? local.passwordHash,
-            recoveryEmail: r.recovery_email ?? local.recoveryEmail,
-          }
-        })
-        const updated = { ...prev, list }
-        saveSpaces(updated)
-        return updated
-      })
+      if (!error && data && data.length > 0) {
+        setSpaces(data.map(rowToSpace))
+      } else {
+        // Seed default spaces into Supabase
+        await supabase.from('spaces').upsert(
+          DEFAULT_SPACES.map(s => ({ id: s.id, name: s.name, emoji: s.emoji, password_hash: null, recovery_email: null })),
+          { onConflict: 'id' }
+        )
+        setSpaces(DEFAULT_SPACES)
+      }
+      setLoading(false)
     }
-    syncFromSupabase()
+    load()
   }, [])
 
-  const activeSpace = spacesData.active
-    ? spacesData.list.find(s => s.id === spacesData.active) || null
-    : null
+  const activeSpace = spaces.find(s => s.id === activeId) || null
 
   const switchSpace = (id) => {
-    const updated = { ...spacesData, active: id }
-    setSpacesData(updated)
-    saveSpaces(updated)
+    setActiveId(id)
+    localStorage.setItem(ACTIVE_KEY, id)
   }
 
   const exitSpace = () => {
-    const updated = { ...spacesData, active: null }
-    setSpacesData(updated)
-    saveSpaces(updated)
+    setActiveId(null)
+    localStorage.removeItem(ACTIVE_KEY)
   }
 
   const addSpace = async (name, emoji = '🌟', password = '', recoveryEmail = '') => {
     const id = name.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '') + '_' + Date.now()
     const passwordHash = password ? await hashPassword(password) : null
-    const newSpace = { id, name, emoji, passwordHash, recoveryEmail: recoveryEmail || null }
-    await supabase.from('spaces').insert({
+    const { error } = await supabase.from('spaces').insert({
       id, name, emoji,
       password_hash: passwordHash,
       recovery_email: recoveryEmail || null,
-    }).maybeSingle()
-    const updated = { active: id, list: [...spacesData.list, newSpace] }
-    setSpacesData(updated)
-    saveSpaces(updated)
+    })
+    if (error) throw error
+    const newSpace = { id, name, emoji, passwordHash, recoveryEmail: recoveryEmail || null }
+    setSpaces(prev => [...prev, newSpace])
+    switchSpace(id)
   }
 
   const deleteSpace = async (id) => {
-    if (spacesData.list.length <= 1) return
-    const updated = {
-      active: spacesData.active === id ? null : spacesData.active,
-      list: spacesData.list.filter(s => s.id !== id),
-    }
+    if (spaces.length <= 1) return
     await supabase.from('spaces').delete().eq('id', id)
-    setSpacesData(updated)
-    saveSpaces(updated)
+    setSpaces(prev => prev.filter(s => s.id !== id))
+    if (activeId === id) exitSpace()
   }
 
   const verifySpacePassword = async (id, password) => {
-    const space = spacesData.list.find(s => s.id === id)
+    const space = spaces.find(s => s.id === id)
     if (!space || !space.passwordHash) return true
     const hash = await hashPassword(password)
     return hash === space.passwordHash
@@ -135,71 +100,51 @@ export function SpaceProvider({ children }) {
 
   const addPasswordToSpace = async (id, password, recoveryEmail = '') => {
     const passwordHash = await hashPassword(password)
-    const list = spacesData.list.map(s =>
-      s.id === id ? { ...s, passwordHash, recoveryEmail: recoveryEmail || s.recoveryEmail } : s
-    )
-    const updated = { ...spacesData, list }
     await supabase.from('spaces').update({
       password_hash: passwordHash,
       recovery_email: recoveryEmail || null,
     }).eq('id', id)
-    setSpacesData(updated)
-    saveSpaces(updated)
+    setSpaces(prev => prev.map(s =>
+      s.id === id ? { ...s, passwordHash, recoveryEmail: recoveryEmail || s.recoveryEmail } : s
+    ))
   }
 
   const changeSpacePassword = async (id, oldPassword, newPassword) => {
     const ok = await verifySpacePassword(id, oldPassword)
     if (!ok) return false
     const passwordHash = await hashPassword(newPassword)
-    const list = spacesData.list.map(s => s.id === id ? { ...s, passwordHash } : s)
-    const updated = { ...spacesData, list }
     await supabase.from('spaces').update({ password_hash: passwordHash }).eq('id', id)
-    setSpacesData(updated)
-    saveSpaces(updated)
+    setSpaces(prev => prev.map(s => s.id === id ? { ...s, passwordHash } : s))
     return true
   }
 
   const removeSpacePassword = async (id, currentPassword) => {
     const ok = await verifySpacePassword(id, currentPassword)
     if (!ok) return false
-    const list = spacesData.list.map(s =>
-      s.id === id ? { ...s, passwordHash: null, recoveryEmail: null } : s
-    )
-    const updated = { ...spacesData, list }
     await supabase.from('spaces').update({ password_hash: null, recovery_email: null }).eq('id', id)
-    setSpacesData(updated)
-    saveSpaces(updated)
+    setSpaces(prev => prev.map(s => s.id === id ? { ...s, passwordHash: null, recoveryEmail: null } : s))
     return true
   }
 
   const updateRecoveryEmail = async (id, email) => {
-    const list = spacesData.list.map(s => s.id === id ? { ...s, recoveryEmail: email } : s)
-    const updated = { ...spacesData, list }
     await supabase.from('spaces').update({ recovery_email: email }).eq('id', id)
-    setSpacesData(updated)
-    saveSpaces(updated)
+    setSpaces(prev => prev.map(s => s.id === id ? { ...s, recoveryEmail: email } : s))
   }
 
   const sendForgotPasswordOTP = async (spaceId, email) => {
-    const space = spacesData.list.find(s => s.id === spaceId)
+    const space = spaces.find(s => s.id === spaceId)
     if (!space) return { ok: false, error: 'Space not found' }
     if (!space.recoveryEmail) return { ok: false, error: 'No recovery email set for this space' }
     if (space.recoveryEmail.toLowerCase() !== email.toLowerCase()) {
       return { ok: false, error: 'Email does not match the recovery email for this space' }
     }
-
     const otp = generateOTP()
     const otpHash = await hashPassword(otp)
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString()
-
     const { error: dbError } = await supabase.from('space_otps').insert({
-      space_id: spaceId,
-      otp_hash: otpHash,
-      expires_at: expiresAt,
-      used: false,
+      space_id: spaceId, otp_hash: otpHash, expires_at: expiresAt, used: false,
     })
     if (dbError) return { ok: false, error: 'Failed to create OTP' }
-
     try {
       const emailjs = await import('@emailjs/browser')
       await emailjs.send(
@@ -211,14 +156,12 @@ export function SpaceProvider({ children }) {
     } catch {
       return { ok: false, error: 'Failed to send OTP email. Check EmailJS configuration.' }
     }
-
     return { ok: true }
   }
 
   const verifyOTPAndResetPassword = async (spaceId, otp, newPassword) => {
     const otpHash = await hashPassword(otp)
     const now = new Date().toISOString()
-
     const { data, error } = await supabase
       .from('space_otps')
       .select('id')
@@ -229,25 +172,19 @@ export function SpaceProvider({ children }) {
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle()
-
     if (error || !data) return { ok: false, error: 'Invalid or expired OTP' }
-
     await supabase.from('space_otps').update({ used: true }).eq('id', data.id)
-
     const passwordHash = await hashPassword(newPassword)
-    const list = spacesData.list.map(s => s.id === spaceId ? { ...s, passwordHash } : s)
-    const updated = { ...spacesData, list }
     await supabase.from('spaces').update({ password_hash: passwordHash }).eq('id', spaceId)
-    setSpacesData(updated)
-    saveSpaces(updated)
-
+    setSpaces(prev => prev.map(s => s.id === spaceId ? { ...s, passwordHash } : s))
     return { ok: true }
   }
 
   return (
     <SpaceContext.Provider value={{
       activeSpace,
-      spaces: spacesData.list,
+      spaces,
+      loading,
       switchSpace,
       exitSpace,
       addSpace,
