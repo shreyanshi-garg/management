@@ -115,7 +115,7 @@ export default function HealthTracker() {
   ]
 
   return (
-    <div className="p-6 md:p-8 max-w-4xl mx-auto space-y-4">
+    <div className="p-4 sm:p-6 md:p-8 max-w-4xl mx-auto space-y-4">
       {/* Summary */}
       <SectionHero
         gradient="linear-gradient(120deg,#FFF1E2 0%,#FDF3EA 55%,#F1FBF4 100%)"
@@ -237,7 +237,7 @@ export default function HealthTracker() {
           )}
 
           {/* Habits */}
-          <div className="soft-card rounded-3xl p-5 space-y-2.5">
+          <div className="soft-card rounded-3xl p-4 sm:p-5 space-y-2.5">
             <p className="font-semibold text-[15px] mb-1" style={{ color: '#4A3A30', fontFamily: 'Fraunces, serif' }}>
               {activeTab === 'food' ? '🥗 Food habits' : '🧘‍♀️ Movement habits'}
             </p>
@@ -283,8 +283,9 @@ export default function HealthTracker() {
                   <div key={h.id} className="flex items-center justify-between px-3 py-1.5 rounded-xl group hover:bg-[#FBF5EC]">
                     <span className="text-[12px] font-semibold" style={{ color: '#9C8877' }}>{h.emoji} {h.label}</span>
                     <button onClick={() => deleteHabit(h.id)}
-                      className="opacity-0 group-hover:opacity-100" style={{ color: '#DCCBB4' }}>
-                      <Trash2 size={12} />
+                      aria-label={`Delete ${h.label}`}
+                      className="p-1.5 -m-1.5 md:opacity-0 md:group-hover:opacity-100" style={{ color: '#DCCBB4' }}>
+                      <Trash2 size={14} />
                     </button>
                   </div>
                 ))}

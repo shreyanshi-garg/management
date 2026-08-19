@@ -37,7 +37,7 @@ export default function EmojiPicker({ onSelect, selected, className = '' }) {
   return (
     <div className={`rounded-2xl overflow-hidden ${className}`} style={{ border: '1px solid #F0E6D8' }}>
       {/* Group tabs */}
-      <div className="flex overflow-x-auto" style={{ background: '#FBF5EC', borderBottom: '1px solid #F0E6D8' }}>
+      <div className="flex scroll-x" style={{ background: '#FBF5EC', borderBottom: '1px solid #F0E6D8' }}>
         {GROUPS.map((g, i) => (
           <button
             key={i}
@@ -54,7 +54,7 @@ export default function EmojiPicker({ onSelect, selected, className = '' }) {
       </div>
 
       {/* Grid */}
-      <div className="grid grid-cols-10 gap-0.5 p-2" style={{ background: '#fff' }}>
+      <div className="grid grid-cols-7 sm:grid-cols-10 gap-0.5 p-2" style={{ background: '#fff' }}>
         {GROUPS[activeGroup].emojis.map(e => (
           <button
             key={e}

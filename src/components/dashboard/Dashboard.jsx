@@ -89,7 +89,7 @@ export default function Dashboard({ onNavigate }) {
   }
 
   return (
-    <div className="p-6 md:p-8 max-w-4xl mx-auto space-y-5">
+    <div className="p-4 sm:p-6 md:p-8 max-w-4xl mx-auto space-y-5">
       {/* Greeting */}
       <div className="flex items-center gap-4 px-1 pt-1">
         <div className="flex-1 min-w-0">
@@ -116,7 +116,7 @@ export default function Dashboard({ onNavigate }) {
       {/* Nudge */}
       <button
         onClick={() => onNavigate(nudge.to)}
-        className="w-full text-left relative overflow-hidden rounded-3xl px-5 py-4 flex items-center gap-4 transition-all hover:scale-[1.01]"
+        className="w-full text-left relative overflow-hidden rounded-3xl px-4 sm:px-5 py-4 flex items-center gap-3 sm:gap-4 transition-all hover:scale-[1.01]"
         style={{ background: 'linear-gradient(120deg,#FFF1E2 0%,#FDEBDD 100%)', border: '1px solid #F6E4D2' }}
       >
         <div className="absolute -top-8 -right-4 w-28 h-28 rounded-full opacity-40 blur-2xl" style={{ background: '#FFD0AE' }} />
@@ -128,7 +128,7 @@ export default function Dashboard({ onNavigate }) {
           <p className="text-[12px] mt-0.5 font-semibold" style={{ color: '#B08662' }}>{quote}</p>
         </div>
         <span
-          className="relative shrink-0 px-4 py-2 rounded-full text-[12px] font-bold text-white"
+          className="relative shrink-0 px-3 sm:px-4 py-2 rounded-full text-[11px] sm:text-[12px] font-bold text-white whitespace-nowrap"
           style={{ background: `linear-gradient(135deg,${TERRA},${TERRA_DEEP})`, boxShadow: `0 6px 16px ${TERRA}45` }}
         >
           {nudge.cta}
@@ -198,7 +198,7 @@ export default function Dashboard({ onNavigate }) {
             <button
               key={sec.id}
               onClick={() => onNavigate(sec.id)}
-              className="group soft-card soft-card-hover text-left rounded-3xl p-5 transition-all duration-300 relative overflow-hidden"
+              className="group soft-card soft-card-hover text-left rounded-3xl p-4 sm:p-5 transition-all duration-300 relative overflow-hidden"
             >
               <div
                 className="absolute -top-8 -right-8 w-24 h-24 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300 blur-xl"

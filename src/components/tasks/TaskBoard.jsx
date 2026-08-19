@@ -144,12 +144,13 @@ function TaskCard({ task, onCycle, onEdit, onDelete }) {
           </div>
         </div>
 
-        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-          <button onClick={() => onEdit(task)} className="p-1.5 rounded-xl hover:bg-[#FBF5EC]" style={{ color: '#B5A28C' }}>
-            <Edit2 size={13} />
+        {/* Always visible on touch — hover reveal only makes sense with a pointer. */}
+        <div className="flex gap-1 md:opacity-0 md:group-hover:opacity-100 transition-opacity shrink-0">
+          <button onClick={() => onEdit(task)} className="p-2 md:p-1.5 rounded-xl hover:bg-[#FBF5EC]" style={{ color: '#B5A28C' }}>
+            <Edit2 size={15} />
           </button>
-          <button onClick={() => onDelete(task.id)} className="p-1.5 rounded-xl hover:bg-[#FFF0F5]" style={{ color: '#DCCBB4' }}>
-            <Trash2 size={13} />
+          <button onClick={() => onDelete(task.id)} className="p-2 md:p-1.5 rounded-xl hover:bg-[#FFF0F5]" style={{ color: '#DCCBB4' }}>
+            <Trash2 size={15} />
           </button>
         </div>
       </div>
@@ -178,7 +179,7 @@ export default function TaskBoard() {
   const doneCount = tabTasks.filter(t => t.status === 'done').length
 
   return (
-    <div className="p-6 md:p-8 max-w-4xl mx-auto space-y-5">
+    <div className="p-4 sm:p-6 md:p-8 max-w-4xl mx-auto space-y-5">
       {/* Category tabs */}
       <div className="grid grid-cols-4 gap-2.5">
         {CATEGORIES.map(cat => {
@@ -207,10 +208,10 @@ export default function TaskBoard() {
 
       {/* Filters + add */}
       <div className="flex items-center justify-between gap-3 flex-wrap">
-        <div className="flex gap-1.5">
+        <div className="flex gap-1.5 flex-wrap">
           {['all', 'todo', 'inProgress', 'done'].map(s => (
             <button key={s} onClick={() => setFilterStatus(s)}
-              className="px-3 py-1.5 rounded-full text-[11px] font-bold"
+              className="px-3 py-2 rounded-full text-[11px] font-bold whitespace-nowrap shrink-0"
               style={filterStatus === s
                 ? { background: ROSE, color: '#fff' }
                 : { background: 'rgba(255,255,255,0.7)', color: '#9C8877', border: '1px solid #F4EADC' }}>

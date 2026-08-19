@@ -12,12 +12,12 @@ export default function Modal({ title, onClose, children, size = 'md' }) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto"
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto overscroll-contain"
       style={{ background: 'rgba(74,59,78,0.28)', backdropFilter: 'blur(6px)' }}
       onClick={(e) => { if (e.target === e.currentTarget) onClose() }}
     >
       <div
-        className={`w-full ${widths[size]} rounded-3xl my-auto`}
+        className={`w-full ${widths[size]} rounded-3xl my-auto flex flex-col max-h-[90dvh]`}
         style={{
           background: '#fff',
           border: '1px solid #F4EADC',
@@ -26,7 +26,7 @@ export default function Modal({ title, onClose, children, size = 'md' }) {
         }}
       >
         <div
-          className="flex items-center justify-between px-6 pt-5 pb-4 rounded-t-3xl"
+          className="flex items-center justify-between px-5 sm:px-6 pt-5 pb-4 rounded-t-3xl shrink-0"
           style={{ background: 'linear-gradient(120deg,#FFF6EE,#F9F2FF)', borderBottom: '1px solid #F4EADC' }}
         >
           <h2 className="text-[17px] font-semibold" style={{ color: '#4A3A30' }}>{title}</h2>
@@ -38,7 +38,7 @@ export default function Modal({ title, onClose, children, size = 'md' }) {
             <X size={17} />
           </button>
         </div>
-        <div className="p-6">{children}</div>
+        <div className="p-5 sm:p-6 overflow-y-auto overscroll-contain">{children}</div>
       </div>
       <style>{`
         @keyframes modalIn {

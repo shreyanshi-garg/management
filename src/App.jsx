@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import AppProvider from './context/AppContext'
 import { SpaceProvider, useSpace } from './context/SpaceContext'
-import Sidebar from './components/layout/Sidebar'
+import Sidebar, { BottomNav } from './components/layout/Sidebar'
 import Header from './components/layout/Header'
 import Dashboard from './components/dashboard/Dashboard'
 import MoneyDashboard from './components/money/MoneyDashboard'
@@ -29,10 +29,12 @@ function AppInner() {
       <Sidebar active={section} onNavigate={setSection} />
       <div className="flex flex-col flex-1 min-w-0">
         <Header section={section} />
-        <main className="flex-1 overflow-y-auto">
+        {/* Bottom padding clears the mobile tab bar (+ the home indicator). */}
+        <main className="flex-1 overflow-y-auto pb-[calc(72px+env(safe-area-inset-bottom,0px))] md:pb-0">
           <Section onNavigate={setSection} />
         </main>
       </div>
+      <BottomNav active={section} onNavigate={setSection} />
       <CelebrationToast />
     </div>
   )

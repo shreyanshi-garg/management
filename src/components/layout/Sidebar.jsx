@@ -19,7 +19,7 @@ export const ACCENT = {
   health:    { main: '#7FD8A0', deep: '#3FA968', light: '#EFFBF3' },
 }
 
-function SpaceSwitcher() {
+export function SpaceSwitcher({ compact = false }) {
   const { activeSpace, spaces, switchSpace, addSpace } = useSpace()
   const [open, setOpen] = useState(false)
   const [adding, setAdding] = useState(false)
@@ -35,7 +35,11 @@ function SpaceSwitcher() {
       }
     }
     document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
+    document.addEventListener('touchstart', handler)
+    return () => {
+      document.removeEventListener('mousedown', handler)
+      document.removeEventListener('touchstart', handler)
+    }
   }, [])
 
   const handleAdd = () => {
@@ -49,14 +53,17 @@ function SpaceSwitcher() {
   }
 
   return (
-    <div ref={ref} className="relative px-5 py-6">
+    <div ref={ref} className={compact ? 'relative' : 'relative px-5 py-6'}>
       <button
         onClick={() => { setOpen(o => !o); setAdding(false) }}
         className="flex items-center gap-2.5 w-full text-left"
       >
-        <span className="text-2xl floaty">{activeSpace.emoji}</span>
-        <div className="hidden md:block leading-none">
-          <p style={{ fontFamily: 'Fraunces, serif' }} className="text-[15px] font-semibold text-[#4A3A30]">
+        <span className={compact ? 'text-xl' : 'text-2xl floaty'}>{activeSpace.emoji}</span>
+        <div className={compact ? 'leading-none' : 'hidden md:block leading-none'}>
+          <p
+            style={{ fontFamily: 'Fraunces, serif' }}
+            className={`text-[15px] font-semibold text-[#4A3A30] truncate ${compact ? 'max-w-[110px]' : ''}`}
+          >
             {activeSpace.name}
           </p>
           <p className="text-[10px] tracking-[0.18em] uppercase mt-1" style={{ color: '#C9A07B' }}>
@@ -67,7 +74,7 @@ function SpaceSwitcher() {
 
       {open && (
         <div
-          className="absolute left-4 top-full mt-1 z-50 rounded-2xl shadow-lg overflow-hidden min-w-[180px]"
+          className={`absolute ${compact ? 'right-0' : 'left-4'} top-full mt-1.5 z-50 rounded-2xl shadow-lg overflow-hidden min-w-[180px]`}
           style={{ background: '#fff', border: '1px solid #F4EADC' }}
         >
           {spaces.map(space => (
@@ -136,10 +143,53 @@ function SpaceSwitcher() {
   )
 }
 
+/**
+ * Mobile navigation. The 80px icon rail ate a fifth of a phone screen, so on
+ * small viewports the same NAV items live in a thumb-reachable bottom bar.
+ */
+export function BottomNav({ active, onNavigate }) {
+  return (
+    <nav
+      className="md:hidden fixed bottom-0 inset-x-0 z-30 safe-bottom"
+      style={{
+        background: 'rgba(255,255,255,0.92)',
+        backdropFilter: 'blur(14px)',
+        borderTop: '1px solid #F4EADC',
+      }}
+    >
+      <div className="flex items-stretch justify-around px-1 pt-1.5 pb-1">
+        {NAV.map(item => {
+          const isActive = active === item.id
+          const a = ACCENT[item.id]
+          return (
+            <button
+              key={item.id}
+              onClick={() => onNavigate(item.id)}
+              aria-current={isActive ? 'page' : undefined}
+              className="flex flex-col items-center justify-center gap-0.5 flex-1 min-w-0 py-1.5 rounded-2xl"
+              style={isActive ? { background: a.light } : {}}
+            >
+              <span className={`text-[19px] leading-none transition-transform ${isActive ? 'scale-110' : ''}`}>
+                {item.emoji}
+              </span>
+              <span
+                className="text-[10px] leading-none truncate max-w-full"
+                style={{ color: isActive ? a.deep : '#B5A28C', fontWeight: isActive ? 700 : 600 }}
+              >
+                {item.label}
+              </span>
+            </button>
+          )
+        })}
+      </div>
+    </nav>
+  )
+}
+
 export default function Sidebar({ active, onNavigate }) {
   return (
     <aside
-      className="flex flex-col w-20 md:w-60 shrink-0 h-screen sticky top-0 z-20"
+      className="hidden md:flex flex-col w-60 shrink-0 h-screen sticky top-0 z-20"
       style={{
         background: 'rgba(255,255,255,0.72)',
         backdropFilter: 'blur(14px)',

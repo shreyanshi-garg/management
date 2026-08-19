@@ -90,7 +90,7 @@ export default function HealthStats({ onSelectDay }) {
       />
 
       {/* Encouragement */}
-      <div className="soft-card rounded-3xl p-5 flex items-center gap-4">
+      <div className="soft-card rounded-3xl p-4 sm:p-5 flex items-center gap-4">
         <ProgressRing value={monthlyAvg} size={68} stroke={7} color="#E8703A">
           <span className="text-[13px] font-bold" style={{ color: '#C4551F' }}>{monthlyAvg}%</span>
         </ProgressRing>

@@ -37,7 +37,7 @@ export default function CelebrationToast() {
 
   return (
     <div
-      className="fixed bottom-7 left-1/2 z-[100] flex items-center gap-3 pl-4 pr-5 py-3.5 rounded-full"
+      className="fixed bottom-[calc(84px+env(safe-area-inset-bottom,0px))] md:bottom-7 left-1/2 z-[100] flex items-center gap-3 pl-4 pr-5 py-3.5 rounded-full max-w-[calc(100vw-2rem)]"
       style={{
         transform: 'translateX(-50%)',
         background: 'rgba(255,255,255,0.94)',

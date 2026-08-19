@@ -99,7 +99,7 @@ function GoalCard({ goal, onToggle, onDelete }) {
   }
 
   return (
-    <div className="soft-card rounded-3xl p-5 relative overflow-hidden"
+    <div className="soft-card rounded-3xl p-4 sm:p-5 relative overflow-hidden"
       style={isComplete
         ? { background: 'linear-gradient(140deg,#FBF3FF,#FFF9F2)', border: `1.5px solid ${LAV}66` }
         : {}}>
@@ -138,8 +138,9 @@ function GoalCard({ goal, onToggle, onDelete }) {
         <ProgressBar value={progress} color={LAV} height={8} />
       </div>
 
+      {/* pb-9 leaves room for the always-visible mobile delete button */}
       {total > 0 && (
-        <div className="relative space-y-2">
+        <div className="relative space-y-2 pb-9 md:pb-0">
           {goal.milestones.map((ms, i) => (
             <button key={ms.id} onClick={() => handleToggle(ms.id)}
               className="w-full flex items-center gap-3 text-left px-3 py-2 rounded-2xl group transition-colors"
@@ -162,8 +163,10 @@ function GoalCard({ goal, onToggle, onDelete }) {
       )}
 
       <button onClick={() => onDelete(goal.id)}
-        className="absolute bottom-4 right-4 opacity-0 hover:opacity-100 focus:opacity-100" style={{ color: '#DCCBB4' }}>
-        <Trash2 size={13} />
+        aria-label="Delete goal"
+        className="absolute bottom-3 right-3 p-2 rounded-xl md:opacity-0 md:hover:opacity-100 md:focus:opacity-100"
+        style={{ color: '#DCCBB4' }}>
+        <Trash2 size={15} />
       </button>
     </div>
   )
@@ -178,7 +181,7 @@ export default function GoalList() {
   const achieved = goals.filter(isDone)
 
   return (
-    <div className="p-6 md:p-8 max-w-3xl mx-auto space-y-5">
+    <div className="p-4 sm:p-6 md:p-8 max-w-3xl mx-auto space-y-5">
       {/* Header banner */}
       <div className="relative overflow-hidden rounded-3xl px-6 py-5 flex items-center justify-between gap-4"
         style={{ background: 'linear-gradient(120deg,#F6EEFF 0%,#FFF3E9 100%)', border: '1px solid #EDE0FA' }}>

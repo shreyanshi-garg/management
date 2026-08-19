@@ -439,7 +439,7 @@ export default function MoneyDashboard() {
   ]
 
   return (
-    <div className="p-6 md:p-8 max-w-5xl mx-auto space-y-5">
+    <div className="p-4 sm:p-6 md:p-8 max-w-5xl mx-auto space-y-5">
       {/* Balance banner */}
       <div className="relative overflow-hidden rounded-3xl px-7 py-6"
         style={{ background: 'linear-gradient(120deg,#FFF4E6 0%,#FFF3E9 60%,#F8EEFF 100%)', border: '1px solid #FFE8D6' }}>
@@ -497,7 +497,7 @@ export default function MoneyDashboard() {
 
       {/* Chart + actions */}
       <div className="grid md:grid-cols-5 gap-4">
-        <div className="soft-card rounded-3xl p-5 md:col-span-3">
+        <div className="soft-card rounded-3xl p-4 sm:p-5 md:col-span-3">
           {/* Chart header */}
           <div className="flex items-center gap-2 mb-2">
             {drillCategory && (
@@ -662,8 +662,7 @@ export default function MoneyDashboard() {
                         ₹{exp.amount.toLocaleString('en-IN')}
                       </span>
                       {/* Edit + delete — always visible in edit mode */}
-                      <div className={`flex items-center gap-1 shrink-0 transition-opacity ${editMode ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
-                        style={{ opacity: editMode ? 1 : undefined }}>
+                      <div className={`items-center gap-1 shrink-0 transition-opacity ${editMode ? 'flex opacity-100' : 'hidden md:flex md:opacity-0 md:group-hover:opacity-100'}`}>
                         <button
                           onClick={() => setEditingExp(exp)}
                           className="w-8 h-8 rounded-xl flex items-center justify-center transition-all hover:scale-105"

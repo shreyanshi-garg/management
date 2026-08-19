@@ -145,7 +145,7 @@ export default function TimeManagement() {
   const totalHrs = weekBlocks.reduce((s, b) => s + Number(b.hours || 0), 0)
 
   return (
-    <div className="p-6 md:p-8 max-w-5xl mx-auto space-y-5">
+    <div className="p-4 sm:p-6 md:p-8 max-w-5xl mx-auto space-y-5">
       {/* Week header */}
       <div className="relative overflow-hidden rounded-3xl px-6 py-5"
         style={{ background: 'linear-gradient(120deg,#EAF7FC 0%,#F3EEFF 100%)', border: '1px solid #DCEEF6' }}>
@@ -168,8 +168,9 @@ export default function TimeManagement() {
         </div>
       </div>
 
-      {/* Week grid */}
-      <div className="grid grid-cols-7 gap-1.5 md:gap-2">
+      {/* Week grid — seven columns can't breathe on a phone, so it scrolls sideways there */}
+      <div className="scroll-x -mx-4 px-4 sm:mx-0 sm:px-0 sm:overflow-visible">
+      <div className="grid grid-cols-7 gap-1.5 md:gap-2 min-w-[620px] sm:min-w-0">
         {days.map(day => {
           const key = format(day, 'yyyy-MM-dd')
           const blocks = timeBlocks.filter(b => b.date === key)
@@ -206,7 +207,8 @@ export default function TimeManagement() {
                         style={{ width: `${bl.progress}%`, background: bl.progress >= 100 ? '#7FD8A0' : SKY }} />
                     </div>
                     <button onClick={(e) => { e.stopPropagation(); deleteTimeBlock(bl.id) }}
-                      className="absolute -top-1 -right-1 w-4 h-4 rounded-full items-center justify-center hidden group-hover:flex text-white text-[9px]"
+                      aria-label="Delete block"
+                      className="absolute -top-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center md:hidden md:group-hover:flex text-white text-[9px]"
                       style={{ background: '#FF9EBB' }}>×</button>
                   </div>
                 ))}
@@ -219,6 +221,7 @@ export default function TimeManagement() {
             </div>
           )
         })}
+      </div>
       </div>
 
       {/* All blocks */}
@@ -261,8 +264,10 @@ export default function TimeManagement() {
                   <Check size={14} />
                 </button>
                 <button onClick={() => deleteTimeBlock(bl.id)}
-                  className="opacity-0 group-hover:opacity-100 shrink-0" style={{ color: '#DCCBB4' }}>
-                  <Trash2 size={13} />
+                  aria-label="Delete block"
+                  className="w-9 h-9 rounded-full flex items-center justify-center shrink-0 md:w-auto md:h-auto md:opacity-0 md:group-hover:opacity-100"
+                  style={{ color: '#DCCBB4' }}>
+                  <Trash2 size={14} />
                 </button>
               </div>
             ))}
