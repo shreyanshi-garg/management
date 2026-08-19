@@ -198,6 +198,94 @@ function EditExpenseModal({ expense, categories, subcategories, onSave, onClose 
   )
 }
 
+function AddLentModal({ onAdd, onClose }) {
+  const [form, setForm] = useState({
+    personName: '', amount: '', note: '',
+    date: new Date().toISOString().split('T')[0],
+  })
+  const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
+  const submit = (e) => {
+    e.preventDefault()
+    if (!form.personName.trim() || !form.amount) return
+    onAdd({ personName: form.personName.trim(), amount: parseFloat(form.amount), date: form.date, note: form.note })
+    onClose()
+  }
+  return (
+    <Modal title="Lend money 🤝" onClose={onClose}>
+      <form onSubmit={submit} className="space-y-4">
+        <div>
+          <label className="block text-[13px] font-semibold mb-1.5" style={{ color: '#9C8877' }}>Person name</label>
+          <input type="text" required autoFocus value={form.personName}
+            onChange={e => set('personName', e.target.value)} className={inputCls} style={inputStyle} placeholder="Who are you lending to?" />
+        </div>
+        <div>
+          <label className="block text-[13px] font-semibold mb-1.5" style={{ color: '#9C8877' }}>Amount (₹)</label>
+          <input type="number" min="0" step="0.01" required value={form.amount}
+            onChange={e => set('amount', e.target.value)} className={inputCls} style={inputStyle} placeholder="0.00" />
+        </div>
+        <div>
+          <label className="block text-[13px] font-semibold mb-1.5" style={{ color: '#9C8877' }}>Date</label>
+          <input type="date" value={form.date} onChange={e => set('date', e.target.value)} className={inputCls} style={inputStyle} />
+        </div>
+        <div>
+          <label className="block text-[13px] font-semibold mb-1.5" style={{ color: '#9C8877' }}>Note <span style={{ color: '#DCCBB4', fontWeight: 400 }}>(optional)</span></label>
+          <input type="text" value={form.note} onChange={e => set('note', e.target.value)}
+            className={inputCls} style={inputStyle} placeholder="What's it for?" />
+        </div>
+        <button type="submit" className="w-full py-3.5 rounded-2xl font-bold text-sm text-white"
+          style={{ background: 'linear-gradient(135deg,#C3A6E8,#A07BC5)', boxShadow: '0 6px 18px rgba(160,123,197,0.3)' }}>
+          Record lent amount
+        </button>
+      </form>
+    </Modal>
+  )
+}
+
+function AddRepaymentModal({ lent, onAdd, onClose }) {
+  const [form, setForm] = useState({
+    amount: '', note: '',
+    date: new Date().toISOString().split('T')[0],
+  })
+  const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
+  const submit = (e) => {
+    e.preventDefault()
+    if (!form.amount) return
+    onAdd(lent.id, { amount: parseFloat(form.amount), date: form.date, note: form.note })
+    onClose()
+  }
+  const totalRepaid = lent.repayments.reduce((s, r) => s + r.amount, 0)
+  const outstanding = lent.amount - totalRepaid
+  return (
+    <Modal title={`Repayment from ${lent.personName} 💜`} onClose={onClose}>
+      <div className="mb-4 px-4 py-3 rounded-2xl" style={{ background: '#F8F0FF', border: '1.5px solid #E8D8FF' }}>
+        <p className="text-[12px] font-semibold" style={{ color: '#7B5EA7' }}>
+          Outstanding: ₹{outstanding.toLocaleString('en-IN')} of ₹{lent.amount.toLocaleString('en-IN')} lent
+        </p>
+      </div>
+      <form onSubmit={submit} className="space-y-4">
+        <div>
+          <label className="block text-[13px] font-semibold mb-1.5" style={{ color: '#9C8877' }}>Amount (₹)</label>
+          <input type="number" min="0" step="0.01" required autoFocus value={form.amount}
+            onChange={e => set('amount', e.target.value)} className={inputCls} style={inputStyle} placeholder="0.00" />
+        </div>
+        <div>
+          <label className="block text-[13px] font-semibold mb-1.5" style={{ color: '#9C8877' }}>Date</label>
+          <input type="date" value={form.date} onChange={e => set('date', e.target.value)} className={inputCls} style={inputStyle} />
+        </div>
+        <div>
+          <label className="block text-[13px] font-semibold mb-1.5" style={{ color: '#9C8877' }}>Note <span style={{ color: '#DCCBB4', fontWeight: 400 }}>(optional)</span></label>
+          <input type="text" value={form.note} onChange={e => set('note', e.target.value)}
+            className={inputCls} style={inputStyle} placeholder="Any note?" />
+        </div>
+        <button type="submit" className="w-full py-3.5 rounded-2xl font-bold text-sm text-white"
+          style={{ background: 'linear-gradient(135deg,#C3A6E8,#A07BC5)', boxShadow: '0 6px 18px rgba(160,123,197,0.3)' }}>
+          Record repayment
+        </button>
+      </form>
+    </Modal>
+  )
+}
+
 function CategoryManager({ categories, categoryEmojis, subcategories, onAdd, onDelete, onSetEmoji, onAddSub, onDeleteSub, onClose }) {
   const [newCat, setNewCat] = useState('')
   const [newEmoji, setNewEmoji] = useState('✨')
@@ -371,7 +459,7 @@ const GROUP_MODES = [
 ]
 
 export default function MoneyDashboard() {
-  const { money, addExpense, deleteExpense, updateExpense, updateIncome, addExpenseCategory, deleteExpenseCategory, setCategoryEmoji, addExpenseSubcategory, deleteExpenseSubcategory } = useApp()
+  const { money, addExpense, deleteExpense, updateExpense, updateIncome, addExpenseCategory, deleteExpenseCategory, setCategoryEmoji, addExpenseSubcategory, deleteExpenseSubcategory, addLent, deleteLent, addRepayment, deleteRepayment } = useApp()
   const [showAdd, setShowAdd] = useState(false)
   const [showCats, setShowCats] = useState(false)
   const [editingExp, setEditingExp] = useState(null)
@@ -380,6 +468,11 @@ export default function MoneyDashboard() {
   const [editMode, setEditMode] = useState(false)
   const [drillCategory, setDrillCategory] = useState(null)
   const [showExpenses, setShowExpenses] = useState(false)
+  const [showLent, setShowLent] = useState(false)
+  const [showAddLent, setShowAddLent] = useState(false)
+  const [lentRepaymentTarget, setLentRepaymentTarget] = useState(null)
+  const [confirmDeleteLent, setConfirmDeleteLent] = useState(null)
+  const [expandedLent, setExpandedLent] = useState(null)
 
   const subcategories = money.subcategories || {}
 
@@ -430,6 +523,12 @@ export default function MoneyDashboard() {
 
   const baseList = filterCat === 'All' ? money.expenses : money.expenses.filter(e => e.category === filterCat)
   const groups = groupExpenses(baseList, groupMode)
+
+  const lentList = money.lent || []
+  const totalOutstanding = lentList.reduce((s, l) => {
+    const repaid = l.repayments.reduce((r, p) => r + p.amount, 0)
+    return s + Math.max(0, l.amount - repaid)
+  }, 0)
 
   const cards = [
     { label: 'Balance', value: balance, emoji: '💗', tint: '#FFF0F5', color: balance >= 0 ? '#E5527A' : '#D6455F' },
@@ -690,6 +789,164 @@ export default function MoneyDashboard() {
         </>)}
       </div>
 
+      {/* Lent */}
+      <div className="soft-card rounded-3xl p-5">
+        <div className={`flex items-center justify-between gap-3 flex-wrap ${showLent ? 'mb-4' : ''}`}>
+          <button
+            onClick={() => setShowLent(o => !o)}
+            className="flex items-center gap-2 -m-1 p-1 rounded-xl transition-all"
+            aria-expanded={showLent}
+          >
+            <ChevronRight
+              size={16}
+              className="transition-transform"
+              style={{ color: '#7B5EA7', transform: showLent ? 'rotate(90deg)' : 'none' }}
+            />
+            <span className="font-semibold text-[15px]" style={{ color: '#4A3A30', fontFamily: 'Fraunces, serif' }}>
+              Money Lent
+            </span>
+            <span className="text-[11.5px] font-bold px-2.5 py-0.5 rounded-full"
+              style={{ background: '#F0E6FF', color: '#7B5EA7' }}>
+              {lentList.length}
+            </span>
+          </button>
+          {showLent && (
+            <button
+              onClick={() => setShowAddLent(true)}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-2xl font-bold text-sm text-white"
+              style={{ background: 'linear-gradient(135deg,#C3A6E8,#A07BC5)', boxShadow: '0 6px 18px rgba(160,123,197,0.3)' }}
+            >
+              <Plus size={14} /> Lend money
+            </button>
+          )}
+        </div>
+
+        {showLent && (<>
+          {totalOutstanding > 0 && (
+            <div className="mb-4 px-4 py-3 rounded-2xl" style={{ background: '#F8F0FF', border: '1.5px solid #E8D8FF' }}>
+              <p className="text-[12px] font-bold" style={{ color: '#7B5EA7' }}>
+                Total outstanding: ₹{totalOutstanding.toLocaleString('en-IN')}
+              </p>
+            </div>
+          )}
+
+          {lentList.length === 0 ? (
+            <EmptyState emoji="🤝" title="No lent records" subtitle="Track money you've lent to friends and family" />
+          ) : (
+            <div className="space-y-3">
+              {lentList.map(lent => {
+                const totalRepaid = lent.repayments.reduce((s, r) => s + r.amount, 0)
+                const outstanding = lent.amount - totalRepaid
+                const isPaid = outstanding <= 0
+                const isExpanded = expandedLent === lent.id
+                return (
+                  <div key={lent.id} className="rounded-2xl overflow-hidden" style={{ background: '#FBF5EC' }}>
+                    <div className="flex items-center gap-3 px-4 py-3">
+                      <div className="w-9 h-9 rounded-xl flex items-center justify-center text-base shrink-0" style={{ background: '#F0E6FF' }}>
+                        🤝
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[13px] font-bold" style={{ color: '#4A3A30' }}>{lent.personName}</p>
+                        <p className="text-[11px] font-semibold" style={{ color: '#B5A28C' }}>
+                          {format(parseISO(lent.date), 'MMM d, yyyy')} · Lent ₹{lent.amount.toLocaleString('en-IN')}
+                        </p>
+                        {lent.note && <p className="text-[11px] font-medium" style={{ color: '#C5B4A0' }}>{lent.note}</p>}
+                      </div>
+                      <div className="text-right shrink-0">
+                        {isPaid ? (
+                          <span className="text-[11px] font-bold px-2.5 py-1 rounded-full" style={{ background: '#EFFBF3', color: '#3FA968' }}>
+                            Paid back ✓
+                          </span>
+                        ) : (
+                          <>
+                            <p className="font-bold text-sm" style={{ color: '#7B5EA7' }}>₹{outstanding.toLocaleString('en-IN')}</p>
+                            <p className="text-[10px] font-semibold" style={{ color: '#C5B4A0' }}>outstanding</p>
+                          </>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-1 shrink-0">
+                        <button
+                          onClick={() => setExpandedLent(isExpanded ? null : lent.id)}
+                          className="w-8 h-8 rounded-xl flex items-center justify-center transition-all hover:scale-105"
+                          style={{ background: isExpanded ? '#C3A6E8' : '#F0E6FF', color: isExpanded ? '#fff' : '#7B5EA7' }}
+                          aria-label="Show repayments"
+                        >
+                          {isExpanded ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
+                        </button>
+                        <button
+                          onClick={() => setConfirmDeleteLent(confirmDeleteLent === lent.id ? null : lent.id)}
+                          className="w-8 h-8 rounded-xl flex items-center justify-center transition-all hover:scale-105"
+                          style={{ background: '#FFF0F5', color: '#E5527A' }}
+                          aria-label="Delete lent record"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
+                    </div>
+
+                    {confirmDeleteLent === lent.id && (
+                      <div className="px-4 pb-3 flex items-center gap-2" style={{ borderTop: '1px solid #F0E6D8' }}>
+                        <p className="text-[12px] font-semibold flex-1" style={{ color: '#9C8877' }}>Delete this record?</p>
+                        <button onClick={() => { deleteLent(lent.id); setConfirmDeleteLent(null) }}
+                          className="px-3 py-1.5 rounded-xl text-[11px] font-bold text-white" style={{ background: '#E5527A' }}>
+                          Delete
+                        </button>
+                        <button onClick={() => setConfirmDeleteLent(null)}
+                          className="px-3 py-1.5 rounded-xl text-[11px] font-bold" style={{ background: '#FBF5EC', color: '#9C8877', border: '1px solid #F0E6D8' }}>
+                          Cancel
+                        </button>
+                      </div>
+                    )}
+
+                    {isExpanded && (
+                      <div className="px-4 pb-3" style={{ borderTop: '1px solid #F0E6D8' }}>
+                        <p className="text-[10px] font-bold uppercase tracking-wider pt-2.5 mb-2" style={{ color: '#DCCBB4' }}>
+                          Repayments
+                        </p>
+                        {lent.repayments.length === 0 ? (
+                          <p className="text-[11px] font-semibold mb-3" style={{ color: '#C5B4A0' }}>No repayments recorded yet</p>
+                        ) : (
+                          <div className="space-y-1.5 mb-3">
+                            {lent.repayments.map(r => (
+                              <div key={r.id} className="flex items-center gap-2 px-3 py-2 rounded-xl" style={{ background: '#fff' }}>
+                                <span className="font-bold text-[12px] flex-1" style={{ color: '#7B5EA7' }}>
+                                  ₹{r.amount.toLocaleString('en-IN')}
+                                </span>
+                                <span className="text-[10px] font-semibold" style={{ color: '#B5A28C' }}>
+                                  {format(parseISO(r.date), 'MMM d, yyyy')}
+                                </span>
+                                {r.note && (
+                                  <span className="text-[10px] font-medium" style={{ color: '#C5B4A0' }}>· {r.note}</span>
+                                )}
+                                <button
+                                  onClick={() => deleteRepayment(r.id, lent.id)}
+                                  className="w-6 h-6 rounded-lg flex items-center justify-center transition-all hover:scale-105"
+                                  style={{ background: '#FFF0F5', color: '#E5527A' }}
+                                  aria-label="Delete repayment"
+                                >
+                                  <Trash2 size={10} />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        <button
+                          onClick={() => setLentRepaymentTarget(lent)}
+                          className="flex items-center gap-1.5 px-4 py-2 rounded-xl font-bold text-[12px] text-white"
+                          style={{ background: 'linear-gradient(135deg,#C3A6E8,#A07BC5)' }}
+                        >
+                          <Plus size={12} /> Add repayment
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </>)}
+      </div>
+
       {showAdd && (
         <AddExpenseModal
           categories={money.categories}
@@ -719,6 +976,19 @@ export default function MoneyDashboard() {
           subcategories={subcategories}
           onSave={(updates) => handleSaveExpense(editingExp.id, updates)}
           onClose={() => setEditingExp(null)}
+        />
+      )}
+      {showAddLent && (
+        <AddLentModal
+          onAdd={(data) => { addLent(data); celebrate('Lent amount recorded 🤝', '💜') }}
+          onClose={() => setShowAddLent(false)}
+        />
+      )}
+      {lentRepaymentTarget && (
+        <AddRepaymentModal
+          lent={lentRepaymentTarget}
+          onAdd={(lentId, data) => { addRepayment(lentId, data); celebrate('Repayment recorded ✨', '💜') }}
+          onClose={() => setLentRepaymentTarget(null)}
         />
       )}
     </div>

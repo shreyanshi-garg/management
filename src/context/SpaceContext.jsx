@@ -34,6 +34,7 @@ const SpaceContext = createContext(null)
 export function SpaceProvider({ children }) {
   const [spaces, setSpaces] = useState([])
   const [activeId, setActiveId] = useState(() => localStorage.getItem(ACTIVE_KEY) || null)
+  const [unlockedSpaceIds, setUnlockedSpaceIds] = useState(new Set())
   const [loading, setLoading] = useState(true)
 
   // Load spaces from Supabase on mount; seed defaults if table is empty
@@ -58,10 +59,13 @@ export function SpaceProvider({ children }) {
     load()
   }, [])
 
-  const activeSpace = spaces.find(s => s.id === activeId) || null
+  const activeSpace = spaces.find(s =>
+    s.id === activeId && (!s.passwordHash || unlockedSpaceIds.has(s.id))
+  ) || null
 
   const switchSpace = (id) => {
     setActiveId(id)
+    setUnlockedSpaceIds(prev => new Set([...prev, id]))
     localStorage.setItem(ACTIVE_KEY, id)
   }
 

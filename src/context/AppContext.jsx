@@ -19,6 +19,7 @@ const EMPTY_MONEY = {
   balance: 0,
   month: { salary: 0, additional: 0 },
   expenses: [],
+  lent: [],
   categories: DEFAULT_EXPENSE_CATEGORIES,
   categoryEmojis: {},
   subcategories: {},
@@ -95,14 +96,26 @@ function AppProvider({ children, spaceId = 'shreyanshi' }) {
   }
 
   async function loadMoney() {
-    const [settingsRes, categoriesRes, expensesRes] = await Promise.all([
+    const [settingsRes, categoriesRes, expensesRes, lentRes] = await Promise.all([
       supabase.from('money_settings').select('*').eq('space_id', spaceId).maybeSingle(),
       supabase.from('expense_categories').select('*, expense_subcategories(name)').eq('space_id', spaceId),
       supabase.from('expenses').select('*, expense_categories(name)').eq('space_id', spaceId).order('date', { ascending: false }),
+      supabase.from('money_lent').select('*, money_lent_repayments(*)').eq('space_id', spaceId).order('date', { ascending: false }),
     ])
 
     const cats = categoriesRes.data || []
     const hasMoney = settingsRes.data || cats.length > 0 || (expensesRes.data && expensesRes.data.length > 0)
+
+    const lent = (lentRes.data || []).map(r => ({
+      id: r.id,
+      personName: r.person_name,
+      amount: Number(r.amount),
+      date: r.date,
+      note: r.note || '',
+      repayments: (r.money_lent_repayments || [])
+        .sort((a, b) => a.date < b.date ? -1 : 1)
+        .map(p => ({ id: p.id, lentId: r.id, amount: Number(p.amount), date: p.date, note: p.note || '' })),
+    }))
 
     if (hasMoney) {
       const settings = settingsRes.data || {}
@@ -123,12 +136,14 @@ function AppProvider({ children, spaceId = 'shreyanshi' }) {
           subcategory: e.subcategory || '',
           note: e.note || '',
         })),
+        lent,
         categories: cats.length > 0 ? cats.map(c => c.name) : DEFAULT_EXPENSE_CATEGORIES,
         categoryEmojis,
         subcategories,
       })
     } else {
       await migrateMoney()
+      setMoney(m => ({ ...m, lent }))
     }
   }
 
@@ -435,6 +450,50 @@ function AppProvider({ children, spaceId = 'shreyanshi' }) {
     }))
   }
 
+  // ─── Lent helpers ─────────────────────────────────────────────────────────
+
+  const addLent = async ({ personName, amount, date, note }) => {
+    const id = uid()
+    const dateStr = date ? date.split('T')[0] : new Date().toISOString().split('T')[0]
+    await supabase.from('money_lent').insert({
+      id, space_id: spaceId, person_name: personName,
+      amount: Number(amount), date: dateStr, note: note || null,
+    })
+    setMoney(m => ({ ...m, lent: [{ id, personName, amount: Number(amount), date: dateStr, note: note || '', repayments: [] }, ...(m.lent || [])] }))
+  }
+
+  const deleteLent = async (id) => {
+    await supabase.from('money_lent').delete().eq('id', id)
+    setMoney(m => ({ ...m, lent: (m.lent || []).filter(l => l.id !== id) }))
+  }
+
+  const addRepayment = async (lentId, { amount, date, note }) => {
+    const id = uid()
+    const dateStr = date ? date.split('T')[0] : new Date().toISOString().split('T')[0]
+    await supabase.from('money_lent_repayments').insert({
+      id, lent_id: lentId, amount: Number(amount), date: dateStr, note: note || null,
+    })
+    setMoney(m => ({
+      ...m,
+      lent: (m.lent || []).map(l => l.id !== lentId ? l : {
+        ...l,
+        repayments: [...(l.repayments || []), { id, lentId, amount: Number(amount), date: dateStr, note: note || '' }]
+          .sort((a, b) => a.date < b.date ? -1 : 1),
+      }),
+    }))
+  }
+
+  const deleteRepayment = async (id, lentId) => {
+    await supabase.from('money_lent_repayments').delete().eq('id', id)
+    setMoney(m => ({
+      ...m,
+      lent: (m.lent || []).map(l => l.id !== lentId ? l : {
+        ...l,
+        repayments: (l.repayments || []).filter(r => r.id !== id),
+      }),
+    }))
+  }
+
   // ─── Time helpers ─────────────────────────────────────────────────────────
 
   const addTimeBlock = async (block) => {
@@ -635,6 +694,7 @@ function AppProvider({ children, spaceId = 'shreyanshi' }) {
     <AppContext.Provider value={{
       money, addExpense, deleteExpense, updateExpense, updateIncome, updateBalance,
       addExpenseCategory, deleteExpenseCategory, setCategoryEmoji, addExpenseSubcategory, deleteExpenseSubcategory,
+      addLent, deleteLent, addRepayment, deleteRepayment,
       timeBlocks, addTimeBlock, updateTimeBlock, deleteTimeBlock, logTime,
       tasks, addTask, updateTask, deleteTask, cycleTaskStatus,
       goals, addGoal, updateGoal, deleteGoal, toggleMilestone,
