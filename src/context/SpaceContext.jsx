@@ -5,7 +5,7 @@ import { supabase } from '../lib/supabase'
 const ACTIVE_KEY = 'pm_active_space'
 
 const DEFAULT_SPACES = [
-  { id: 'shreyanshii', name: 'Shreyanshii', emoji: '🌷', passwordHash: null, recoveryEmail: null },
+  { id: 'shreyanshi', name: 'Shreyanshi', emoji: '🌷', passwordHash: null, recoveryEmail: null },
   { id: 'sambhav', name: 'Sambhav', emoji: '✨', passwordHash: null, recoveryEmail: null },
 ]
 

@@ -28,7 +28,7 @@ function uid() {
   return crypto.randomUUID()
 }
 
-function AppProvider({ children, spaceId = 'shreyanshii' }) {
+function AppProvider({ children, spaceId = 'shreyanshi' }) {
   const [money, setMoney] = useState(EMPTY_MONEY)
   const [timeBlocks, setTimeBlocks] = useState([])
   const [tasks, setTasks] = useState([])
