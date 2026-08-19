@@ -10,6 +10,7 @@ import TaskBoard from './components/tasks/TaskBoard'
 import GoalList from './components/goals/GoalList'
 import HealthTracker from './components/health/HealthTracker'
 import CelebrationToast from './components/shared/CelebrationToast'
+import SpaceSelectionPage from './components/spaces/SpaceSelectionPage'
 
 const SECTIONS = {
   dashboard: Dashboard,
@@ -42,6 +43,11 @@ function AppInner() {
 
 function SpacedApp() {
   const { activeSpace } = useSpace()
+
+  if (!activeSpace) {
+    return <SpaceSelectionPage />
+  }
+
   return (
     <AppProvider key={activeSpace.id} spaceId={activeSpace.id}>
       <AppInner />

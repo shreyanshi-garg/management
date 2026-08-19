@@ -1,5 +1,6 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState } from 'react'
 import { useSpace } from '../../context/SpaceContext'
+import SpaceSettingsModal from '../spaces/SpaceSettingsModal'
 
 const NAV = [
   { id: 'dashboard', emoji: '🌸', label: 'Home' },
@@ -20,126 +21,71 @@ export const ACCENT = {
 }
 
 export function SpaceSwitcher({ compact = false }) {
-  const { activeSpace, spaces, switchSpace, addSpace } = useSpace()
-  const [open, setOpen] = useState(false)
-  const [adding, setAdding] = useState(false)
-  const [newName, setNewName] = useState('')
-  const [newEmoji, setNewEmoji] = useState('')
-  const ref = useRef(null)
+  const { activeSpace, exitSpace } = useSpace()
+  const [showSettings, setShowSettings] = useState(false)
 
-  useEffect(() => {
-    function handler(e) {
-      if (ref.current && !ref.current.contains(e.target)) {
-        setOpen(false)
-        setAdding(false)
-      }
-    }
-    document.addEventListener('mousedown', handler)
-    document.addEventListener('touchstart', handler)
-    return () => {
-      document.removeEventListener('mousedown', handler)
-      document.removeEventListener('touchstart', handler)
-    }
-  }, [])
+  if (!activeSpace) return null
 
-  const handleAdd = () => {
-    const name = newName.trim()
-    if (!name) return
-    addSpace(name, newEmoji.trim() || '🌟')
-    setNewName('')
-    setNewEmoji('')
-    setAdding(false)
-    setOpen(false)
+  if (compact) {
+    return (
+      <>
+        <div className="flex items-center gap-1.5">
+          <button
+            onClick={exitSpace}
+            className="flex items-center gap-1.5"
+            title="Switch space"
+          >
+            <span className="text-xl">{activeSpace.emoji}</span>
+            <span className="text-[13px] font-semibold truncate max-w-[90px]" style={{ fontFamily: 'Fraunces, serif', color: '#4A3A30' }}>
+              {activeSpace.name}
+            </span>
+          </button>
+          <button
+            onClick={() => setShowSettings(true)}
+            className="text-base leading-none px-1 rounded-lg hover:bg-[#FFF0F5] transition-colors"
+            title="Space settings"
+            style={{ color: '#C9A07B' }}
+          >
+            ⚙
+          </button>
+        </div>
+        {showSettings && (
+          <SpaceSettingsModal space={activeSpace} onClose={() => setShowSettings(false)} />
+        )}
+      </>
+    )
   }
 
   return (
-    <div ref={ref} className={compact ? 'relative' : 'relative px-5 py-6'}>
-      <button
-        onClick={() => { setOpen(o => !o); setAdding(false) }}
-        className="flex items-center gap-2.5 w-full text-left"
-      >
-        <span className={compact ? 'text-xl' : 'text-2xl floaty'}>{activeSpace.emoji}</span>
-        <div className={compact ? 'leading-none' : 'hidden md:block leading-none'}>
-          <p
-            style={{ fontFamily: 'Fraunces, serif' }}
-            className={`text-[15px] font-semibold text-[#4A3A30] truncate ${compact ? 'max-w-[110px]' : ''}`}
-          >
+    <>
+      <div className="px-5 py-5 flex items-center gap-2.5">
+        <span className="text-2xl floaty">{activeSpace.emoji}</span>
+        <div className="hidden md:flex flex-col flex-1 min-w-0">
+          <p className="text-[15px] font-semibold truncate" style={{ fontFamily: 'Fraunces, serif', color: '#4A3A30' }}>
             {activeSpace.name}
+            {activeSpace.passwordHash && <span className="ml-1 text-xs" style={{ color: '#E5527A' }}>🔒</span>}
           </p>
-          <p className="text-[10px] tracking-[0.18em] uppercase mt-1" style={{ color: '#C9A07B' }}>
-            my space ▾
-          </p>
+          <button
+            onClick={exitSpace}
+            className="text-[10px] tracking-[0.16em] uppercase text-left mt-0.5 hover:underline"
+            style={{ color: '#C9A07B' }}
+          >
+            switch space ↩
+          </button>
         </div>
-      </button>
-
-      {open && (
-        <div
-          className={`absolute ${compact ? 'right-0' : 'left-4'} top-full mt-1.5 z-50 rounded-2xl shadow-lg overflow-hidden min-w-[180px]`}
-          style={{ background: '#fff', border: '1px solid #F4EADC' }}
+        <button
+          onClick={() => setShowSettings(true)}
+          className="hidden md:flex items-center justify-center w-7 h-7 rounded-xl hover:bg-[#FFF0F5] transition-colors shrink-0"
+          title="Space settings"
+          style={{ color: '#C9A07B', fontSize: '15px' }}
         >
-          {spaces.map(space => (
-            <button
-              key={space.id}
-              onClick={() => { switchSpace(space.id); setOpen(false) }}
-              className="flex items-center gap-2.5 w-full px-4 py-2.5 text-left hover:bg-[#FFF0F5] transition-colors"
-            >
-              <span className="text-lg">{space.emoji}</span>
-              <span className="text-sm font-medium text-[#4A3A30] flex-1">{space.name}</span>
-              {space.id === activeSpace.id && (
-                <span className="text-[#E5527A] text-xs">✓</span>
-              )}
-            </button>
-          ))}
-
-          <div className="border-t border-[#F4EADC]">
-            {adding ? (
-              <div className="px-4 py-3 flex flex-col gap-2">
-                <div className="flex gap-2">
-                  <input
-                    autoFocus
-                    value={newEmoji}
-                    onChange={e => setNewEmoji(e.target.value)}
-                    placeholder="🌟"
-                    className="w-10 text-center border border-[#F4EADC] rounded-lg text-sm px-1 py-1 outline-none"
-                  />
-                  <input
-                    value={newName}
-                    onChange={e => setNewName(e.target.value)}
-                    onKeyDown={e => e.key === 'Enter' && handleAdd()}
-                    placeholder="Name"
-                    className="flex-1 border border-[#F4EADC] rounded-lg text-sm px-2 py-1 outline-none"
-                  />
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={handleAdd}
-                    className="flex-1 text-xs font-semibold py-1 rounded-lg text-white"
-                    style={{ background: '#E5527A' }}
-                  >
-                    Add
-                  </button>
-                  <button
-                    onClick={() => setAdding(false)}
-                    className="flex-1 text-xs py-1 rounded-lg"
-                    style={{ color: '#9C8877' }}
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <button
-                onClick={() => setAdding(true)}
-                className="flex items-center gap-2 w-full px-4 py-2.5 text-left hover:bg-[#FFF0F5] transition-colors"
-              >
-                <span className="text-base text-[#C9A07B]">+</span>
-                <span className="text-sm text-[#C9A07B]">Add space</span>
-              </button>
-            )}
-          </div>
-        </div>
+          ⚙
+        </button>
+      </div>
+      {showSettings && (
+        <SpaceSettingsModal space={activeSpace} onClose={() => setShowSettings(false)} />
       )}
-    </div>
+    </>
   )
 }
 
