@@ -1,7 +1,9 @@
 import { format, addMonths, subMonths, isAfter } from 'date-fns'
-import { monthMatrix, dayKey } from '../../hooks/useHabitStats'
+import { monthMatrix } from '../../utils/habitStats'
+import { dayKey } from '../../utils/date'
 
 const WEEKDAYS = ['M', 'T', 'W', 'T', 'F', 'S', 'S']
+const ACCENT = '#E8703A'
 
 /**
  * Month dot grid — each day's dot grows and deepens with how much of that day was done.
@@ -11,7 +13,6 @@ export default function MonthCalendar({
   habits,
   month,
   onMonthChange,
-  accent = '#E8703A',
   onSelectDay,
   today = dayKey(),
 }) {
@@ -57,7 +58,7 @@ export default function MonthCalendar({
               className="aspect-square rounded-xl flex flex-col items-center justify-center gap-0.5 transition-all hover:scale-105"
               style={{
                 background: isToday ? '#FDEEE4' : 'transparent',
-                boxShadow: isToday ? `inset 0 0 0 1.5px ${accent}` : 'none',
+                boxShadow: isToday ? `inset 0 0 0 1.5px ${ACCENT}` : 'none',
                 opacity: c.inMonth ? 1 : 0.3,
               }}
             >
@@ -69,7 +70,7 @@ export default function MonthCalendar({
                 style={{
                   width: ratio > 0 ? 5 + ratio * 4 : 4,
                   height: ratio > 0 ? 5 + ratio * 4 : 4,
-                  background: ratio > 0 ? accent : '#F0E6D8',
+                  background: ratio > 0 ? ACCENT : '#F0E6D8',
                   opacity: ratio > 0 ? 0.35 + ratio * 0.65 : 1,
                 }}
               />

@@ -8,7 +8,6 @@ import Badge from '../shared/Badge'
 import EmptyState from '../shared/EmptyState'
 
 const ROSE = '#FF9EBB'
-const ROSE_DEEP = '#E5527A'
 
 const CATEGORIES = [
   { id: 'work', label: 'Work',  emoji: '💼', main: '#8FCFE0', deep: '#4A9EB8', light: '#EEFAFD' },

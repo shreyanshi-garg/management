@@ -6,12 +6,11 @@ export default function SectionHero({
   blob = '#FFD3B0',
   border = '#F6E6D4',
   emoji,
-  className = '',
   children,
 }) {
   return (
     <div
-      className={`relative overflow-hidden rounded-3xl px-6 py-6 ${className}`}
+      className="relative overflow-hidden rounded-3xl px-6 py-6"
       style={{ background: gradient, border: `1px solid ${border}` }}
     >
       <div className="absolute -top-10 -right-6 w-40 h-40 rounded-full opacity-45 blur-2xl" style={{ background: blob }} />

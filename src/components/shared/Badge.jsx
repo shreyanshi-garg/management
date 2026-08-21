@@ -13,14 +13,14 @@ const presets = {
   low:    { bg: '#EEFAFD', text: '#4A9EB8', label: '🌱 Low' },
 }
 
-export default function Badge({ type, custom }) {
+export default function Badge({ type }) {
   const style = presets[type] || { bg: '#FBF5EC', text: '#A6947F', label: type }
   return (
     <span
       className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-semibold"
       style={{ background: style.bg, color: style.text }}
     >
-      {custom || style.label}
+      {style.label}
     </span>
   )
 }

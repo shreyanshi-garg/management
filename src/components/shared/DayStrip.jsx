@@ -1,5 +1,5 @@
 import { format, subDays } from 'date-fns'
-import { dayKey, parseDay } from '../../hooks/useHabitStats'
+import { dayKey, parseDay } from '../../utils/date'
 
 /**
  * Layers-style week strip: weekday initial above a round day pill.
@@ -13,14 +13,13 @@ export default function DayStrip({
   dotFor = () => ({ done: 0, total: 0 }),
   accent = '#E8703A',
   today = dayKey(),
-  className = '',
 }) {
   const days = Array.from({ length: 7 }, (_, i) =>
     dayKey(subDays(parseDay(today), 6 - i + weekOffset * 7))
   )
 
   return (
-    <div className={`soft-card rounded-3xl px-4 py-3.5 ${className}`}>
+    <div className="soft-card rounded-3xl px-4 py-3.5">
       {onWeekChange && (
         <div className="flex items-center justify-between mb-2.5">
           <button

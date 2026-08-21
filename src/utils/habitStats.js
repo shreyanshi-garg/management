@@ -3,8 +3,6 @@ import { subDays, addDays, startOfMonth, endOfMonth, startOfWeek, endOfWeek, isS
 
 import { dayKey, parseDay } from './date'
 
-export { dayKey, parseDay }
-
 const didHabit = (log, habitId, key) => !!log?.[key]?.habits?.[habitId]
 
 /**

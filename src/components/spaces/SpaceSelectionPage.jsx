@@ -1,16 +1,11 @@
 import { useState } from 'react'
 import { useSpace } from '../../context/SpaceContext'
-import SpacePasswordModal from './SpacePasswordModal'
-import ForgotPasswordModal from './ForgotPasswordModal'
+import { useAuth } from '../../context/AuthContext'
 
 function NewSpaceForm({ onDone }) {
   const { addSpace } = useSpace()
   const [name, setName] = useState('')
   const [emoji, setEmoji] = useState('')
-  const [password, setPassword] = useState('')
-  const [confirmPassword, setConfirmPassword] = useState('')
-  const [recoveryEmail, setRecoveryEmail] = useState('')
-  const [withPassword, setWithPassword] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -18,14 +13,15 @@ function NewSpaceForm({ onDone }) {
     e.preventDefault()
     setError('')
     if (!name.trim()) return
-    if (withPassword) {
-      if (password !== confirmPassword) return setError('Passwords do not match')
-      if (password.length < 4) return setError('Password must be at least 4 characters')
-    }
     setLoading(true)
-    await addSpace(name.trim(), emoji.trim() || '🌟', withPassword ? password : '', recoveryEmail)
-    setLoading(false)
-    onDone?.()
+    try {
+      await addSpace(name.trim(), emoji.trim() || '🌟')
+      onDone?.()
+    } catch (err) {
+      setError(err.message || 'Could not create the space')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -48,44 +44,9 @@ function NewSpaceForm({ onDone }) {
         />
       </div>
 
-      <label className="flex items-center gap-2 cursor-pointer text-sm" style={{ color: '#9C8877' }}>
-        <input
-          type="checkbox"
-          checked={withPassword}
-          onChange={e => setWithPassword(e.target.checked)}
-          className="rounded accent-pink-400"
-        />
-        Protect with a password
-      </label>
-
-      {withPassword && (
-        <div className="flex flex-col gap-2 pl-1">
-          <input
-            type="password"
-            value={password}
-            onChange={e => setPassword(e.target.value)}
-            placeholder="Password"
-            className="w-full border rounded-xl px-4 py-2.5 text-sm outline-none"
-            style={{ borderColor: '#F4EADC', color: '#4A3A30' }}
-          />
-          <input
-            type="password"
-            value={confirmPassword}
-            onChange={e => setConfirmPassword(e.target.value)}
-            placeholder="Confirm password"
-            className="w-full border rounded-xl px-4 py-2.5 text-sm outline-none"
-            style={{ borderColor: error ? '#E5527A' : '#F4EADC', color: '#4A3A30' }}
-          />
-          <input
-            type="email"
-            value={recoveryEmail}
-            onChange={e => setRecoveryEmail(e.target.value)}
-            placeholder="Recovery email (optional)"
-            className="w-full border rounded-xl px-4 py-2.5 text-sm outline-none"
-            style={{ borderColor: '#F4EADC', color: '#4A3A30' }}
-          />
-        </div>
-      )}
+      <p className="text-[11px]" style={{ color: '#B5A28C' }}>
+        You'll be its owner. Invite others by email from space settings.
+      </p>
 
       {error && <p className="text-xs" style={{ color: '#E5527A' }}>{error}</p>}
 
@@ -102,18 +63,9 @@ function NewSpaceForm({ onDone }) {
 }
 
 export default function SpaceSelectionPage() {
-  const { spaces, switchSpace } = useSpace()
-  const [lockedSpace, setLockedSpace] = useState(null)
-  const [forgotSpace, setForgotSpace] = useState(null)
+  const { spaces, switchSpace, error } = useSpace()
+  const { email, signOut } = useAuth()
   const [showNewForm, setShowNewForm] = useState(false)
-
-  const handleSpaceClick = (space) => {
-    if (space.passwordHash) {
-      setLockedSpace(space)
-    } else {
-      switchSpace(space.id)
-    }
-  }
 
   return (
     <div
@@ -126,15 +78,21 @@ export default function SpaceSelectionPage() {
         <h1 className="text-3xl font-bold" style={{ fontFamily: 'Fraunces, serif', color: '#4A3A30' }}>
           Welcome back
         </h1>
-        <p className="text-sm" style={{ color: '#9C8877' }}>Choose a space to continue</p>
+        <p className="text-sm" style={{ color: '#9C8877' }}>
+          {spaces.length ? 'Choose a space to continue' : 'No spaces yet — create your first one'}
+        </p>
       </div>
+
+      {error && (
+        <p className="mb-4 text-xs text-center max-w-md" style={{ color: '#E5527A' }}>{error}</p>
+      )}
 
       {/* Space cards */}
       <div className="grid grid-cols-2 gap-4 w-full max-w-md">
         {spaces.map(space => (
           <button
             key={space.id}
-            onClick={() => handleSpaceClick(space)}
+            onClick={() => switchSpace(space.id)}
             className="relative flex flex-col items-center gap-3 p-6 rounded-3xl text-center group transition-all hover:scale-[1.03] active:scale-[0.98]"
             style={{
               background: '#fff',
@@ -142,14 +100,6 @@ export default function SpaceSelectionPage() {
               boxShadow: '0 2px 16px rgba(74,58,48,0.06)',
             }}
           >
-            {space.passwordHash && (
-              <span
-                className="absolute top-3 right-3 text-[11px] px-2 py-0.5 rounded-full font-semibold"
-                style={{ background: '#FFF0F5', color: '#E5527A' }}
-              >
-                🔒
-              </span>
-            )}
             <span className="text-4xl transition-transform group-hover:scale-110">{space.emoji}</span>
             <span className="text-sm font-semibold" style={{ fontFamily: 'Fraunces, serif', color: '#4A3A30' }}>
               {space.name}
@@ -187,24 +137,13 @@ export default function SpaceSelectionPage() {
         </div>
       )}
 
-      {/* Password modal */}
-      {lockedSpace && !forgotSpace && (
-        <SpacePasswordModal
-          space={lockedSpace}
-          onSuccess={() => setLockedSpace(null)}
-          onClose={() => setLockedSpace(null)}
-          onForgot={() => setForgotSpace(lockedSpace)}
-        />
-      )}
-
-      {/* Forgot password modal */}
-      {forgotSpace && (
-        <ForgotPasswordModal
-          space={forgotSpace}
-          onSuccess={() => { setForgotSpace(null); setLockedSpace(null) }}
-          onClose={() => { setForgotSpace(null) }}
-        />
-      )}
+      {/* Signed-in identity */}
+      <div className="mt-10 flex flex-col items-center gap-1.5">
+        <p className="text-xs" style={{ color: '#B5A28C' }}>Signed in as {email}</p>
+        <button onClick={signOut} className="text-xs font-semibold hover:underline" style={{ color: '#C9A07B' }}>
+          Sign out
+        </button>
+      </div>
     </div>
   )
 }

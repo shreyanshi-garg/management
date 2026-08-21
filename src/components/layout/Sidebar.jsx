@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useSpace } from '../../context/SpaceContext'
+import { useAuth } from '../../context/AuthContext'
 import SpaceSettingsModal from '../spaces/SpaceSettingsModal'
 
 const NAV = [
@@ -22,6 +23,7 @@ export const ACCENT = {
 
 export function SpaceSwitcher({ compact = false }) {
   const { activeSpace, exitSpace } = useSpace()
+  const { email, signOut } = useAuth()
   const [showSettings, setShowSettings] = useState(false)
 
   if (!activeSpace) return null
@@ -48,6 +50,14 @@ export function SpaceSwitcher({ compact = false }) {
           >
             ⚙
           </button>
+          <button
+            onClick={signOut}
+            className="text-sm leading-none px-1 rounded-lg hover:bg-[#FFF0F5] transition-colors"
+            title={`Sign out (${email})`}
+            style={{ color: '#C9A07B' }}
+          >
+            ⏏
+          </button>
         </div>
         {showSettings && (
           <SpaceSettingsModal space={activeSpace} onClose={() => setShowSettings(false)} />
@@ -63,7 +73,6 @@ export function SpaceSwitcher({ compact = false }) {
         <div className="hidden md:flex flex-col flex-1 min-w-0">
           <p className="text-[15px] font-semibold truncate" style={{ fontFamily: 'Fraunces, serif', color: '#4A3A30' }}>
             {activeSpace.name}
-            {activeSpace.passwordHash && <span className="ml-1 text-xs" style={{ color: '#E5527A' }}>🔒</span>}
           </p>
           <button
             onClick={exitSpace}
@@ -71,6 +80,14 @@ export function SpaceSwitcher({ compact = false }) {
             style={{ color: '#C9A07B' }}
           >
             switch space ↩
+          </button>
+          <button
+            onClick={signOut}
+            title={email}
+            className="text-[10px] tracking-[0.16em] uppercase text-left mt-0.5 hover:underline"
+            style={{ color: '#C9A07B' }}
+          >
+            sign out ⏏
           </button>
         </div>
         <button

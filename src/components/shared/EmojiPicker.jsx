@@ -31,11 +31,11 @@ const GROUPS = [
  * Inline emoji picker grid.
  * `onSelect(emoji)` is called when an emoji is tapped.
  */
-export default function EmojiPicker({ onSelect, selected, className = '' }) {
+export default function EmojiPicker({ onSelect, selected }) {
   const [activeGroup, setActiveGroup] = useState(0)
 
   return (
-    <div className={`rounded-2xl overflow-hidden ${className}`} style={{ border: '1px solid #F0E6D8' }}>
+    <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid #F0E6D8' }}>
       {/* Group tabs */}
       <div className="flex scroll-x" style={{ background: '#FBF5EC', borderBottom: '1px solid #F0E6D8' }}>
         {GROUPS.map((g, i) => (

@@ -2,8 +2,6 @@ import { useMemo } from 'react'
 import { useApp } from '../context/AppContext'
 import { currentStreak, longestStreak, completionRate, perfectDays } from '../utils/habitStats'
 
-export * from '../utils/habitStats'
-
 /** Memoized stats bundle over the live health log. */
 export function useHabitStats(days = 30) {
   const { health, todayKey } = useApp()

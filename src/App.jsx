@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import AppProvider from './context/AppContext'
 import { SpaceProvider, useSpace } from './context/SpaceContext'
+import { AuthProvider, useAuth } from './context/AuthContext'
+import LoginPage from './components/auth/LoginPage'
 import Sidebar, { BottomNav } from './components/layout/Sidebar'
 import Header from './components/layout/Header'
 import Dashboard from './components/dashboard/Dashboard'
@@ -41,16 +43,18 @@ function AppInner() {
   )
 }
 
+function Splash() {
+  return (
+    <div className="min-h-screen flex items-center justify-center" style={{ background: 'linear-gradient(160deg,#FFF5F8 0%,#FFF9F0 50%,#F5F0FF 100%)' }}>
+      <span className="text-4xl animate-pulse">🌸</span>
+    </div>
+  )
+}
+
 function SpacedApp() {
   const { activeSpace, loading } = useSpace()
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: 'linear-gradient(160deg,#FFF5F8 0%,#FFF9F0 50%,#F5F0FF 100%)' }}>
-        <span className="text-4xl animate-pulse">🌸</span>
-      </div>
-    )
-  }
+  if (loading) return <Splash />
 
   if (!activeSpace) {
     return <SpaceSelectionPage />
@@ -63,10 +67,24 @@ function SpacedApp() {
   )
 }
 
-export default function App() {
+/** Nothing renders until Google sign-in completes. */
+function AuthGate() {
+  const { user, loading } = useAuth()
+
+  if (loading) return <Splash />
+  if (!user) return <LoginPage />
+
   return (
     <SpaceProvider>
       <SpacedApp />
     </SpaceProvider>
+  )
+}
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <AuthGate />
+    </AuthProvider>
   )
 }
