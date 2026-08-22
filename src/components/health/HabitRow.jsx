@@ -1,18 +1,28 @@
-import { Check, Clock } from 'lucide-react'
+import { Check, Clock, Edit2, Trash2 } from 'lucide-react'
 import { habitColor } from './habitPalette'
 
 /**
  * Layers-style habit row: round check + timeline connector, colored icon tile,
- * label with its streak underneath, optional duration chip.
+ * label with its streak underneath, optional duration chip, hover edit/delete.
  */
-export default function HabitRow({ habit, index = 0, checked, streak = 0, onToggle, isLast = false }) {
+export default function HabitRow({
+  habit,
+  index = 0,
+  checked,
+  streak = 0,
+  onToggle,
+  onEdit,
+  onDelete,
+  isLast = false,
+}) {
   const c = habitColor(habit, index)
 
   return (
-    <div className="relative flex items-stretch gap-3">
+    <div className="relative flex items-stretch gap-3 group">
       {/* check + connector */}
       <div className="flex flex-col items-center pt-4 shrink-0">
         <button
+          type="button"
           onClick={onToggle}
           aria-label={`${checked ? 'Undo' : 'Complete'} ${habit.label}`}
           className="w-[22px] h-[22px] rounded-full flex items-center justify-center transition-all hover:scale-110 shrink-0"
@@ -26,41 +36,67 @@ export default function HabitRow({ habit, index = 0, checked, streak = 0, onTogg
       </div>
 
       {/* card */}
-      <button
-        onClick={onToggle}
-        className="flex-1 min-w-0 flex items-center gap-3 px-3.5 py-3 rounded-2xl text-left transition-all hover:scale-[1.01] mb-2"
+      <div
+        className="flex-1 min-w-0 flex items-center gap-3 px-3.5 py-3 rounded-2xl mb-2 transition-all hover:scale-[1.01]"
         style={checked
           ? { background: c.light, boxShadow: `inset 0 0 0 1.5px ${c.main}66` }
           : { background: '#FBF5EC' }}
       >
-        <span
-          className="w-10 h-10 rounded-2xl flex items-center justify-center text-[19px] shrink-0"
-          style={{ background: checked ? '#fff' : c.light }}
+        <button
+          type="button"
+          onClick={onToggle}
+          className="flex-1 min-w-0 flex items-center gap-3 text-left"
         >
-          {habit.emoji}
-        </span>
-
-        <span className="flex-1 min-w-0">
           <span
-            className={`block text-[13.5px] font-bold truncate ${checked ? 'line-through decoration-[1.5px]' : ''}`}
-            style={{ color: checked ? c.deep : '#4A3A30' }}
+            className="w-10 h-10 rounded-2xl flex items-center justify-center text-[19px] shrink-0"
+            style={{ background: checked ? '#fff' : c.light }}
           >
-            {habit.label}
+            {habit.emoji}
           </span>
-          <span className="block text-[11px] font-semibold mt-0.5" style={{ color: streak > 0 ? c.deep : '#B5A28C' }}>
-            {streak > 0 ? `🔥 Streak ${streak} day${streak > 1 ? 's' : ''}` : 'No streak yet'}
-          </span>
-        </span>
 
-        {habit.minutes && (
-          <span
-            className="flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold shrink-0"
-            style={{ background: '#fff', color: '#9C8877' }}
-          >
-            <Clock size={11} /> {habit.minutes} min
+          <span className="flex-1 min-w-0">
+            <span
+              className={`block text-[13.5px] font-bold truncate ${checked ? 'line-through decoration-[1.5px]' : ''}`}
+              style={{ color: checked ? c.deep : '#4A3A30' }}
+            >
+              {habit.label}
+            </span>
+            <span className="block text-[11px] font-semibold mt-0.5" style={{ color: streak > 0 ? c.deep : '#B5A28C' }}>
+              {streak > 0 ? `🔥 Streak ${streak} day${streak > 1 ? 's' : ''}` : 'No streak yet'}
+            </span>
           </span>
-        )}
-      </button>
+
+          {habit.minutes && (
+            <span
+              className="flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold shrink-0"
+              style={{ background: '#fff', color: '#9C8877' }}
+            >
+              <Clock size={11} /> {habit.minutes} min
+            </span>
+          )}
+        </button>
+
+        <div className="flex gap-0.5 shrink-0 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); onEdit?.(habit) }}
+            aria-label={`Edit ${habit.label}`}
+            className="p-2 md:p-1.5 rounded-xl hover:bg-white/80"
+            style={{ color: '#B5A28C' }}
+          >
+            <Edit2 size={14} />
+          </button>
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); onDelete?.(habit.id) }}
+            aria-label={`Delete ${habit.label}`}
+            className="p-2 md:p-1.5 rounded-xl hover:bg-[#FFF0F5]"
+            style={{ color: '#DCCBB4' }}
+          >
+            <Trash2 size={14} />
+          </button>
+        </div>
+      </div>
     </div>
   )
 }

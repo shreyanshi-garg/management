@@ -501,6 +501,44 @@ function AppProvider({ children, spaceId }) {
     setGoals(g => g.filter(gl => gl.id !== id))
   }
 
+  const updateGoal = async (id, updates) => {
+    const dbUpdates = {}
+    if (updates.title !== undefined) dbUpdates.title = updates.title
+    if (updates.description !== undefined) dbUpdates.description = updates.description || null
+    if (updates.targetDate !== undefined) dbUpdates.target_date = updates.targetDate || null
+    if (Object.keys(dbUpdates).length) await supabase.from('goals').update(dbUpdates).eq('id', id)
+
+    let nextMilestones
+    if (updates.milestones !== undefined) {
+      const prev = goals.find(g => g.id === id)
+      const prevById = new Map((prev?.milestones || []).map(m => [m.id, m]))
+      nextMilestones = (updates.milestones || []).map((m) => {
+        const idKept = m.id && prevById.has(m.id) ? m.id : uid()
+        const prior = prevById.get(idKept)
+        return {
+          id: idKept,
+          label: m.label,
+          done: m.done !== undefined ? !!m.done : !!(prior?.done),
+        }
+      })
+      await supabase.from('goal_milestones').delete().eq('goal_id', id)
+      if (nextMilestones.length) {
+        await supabase.from('goal_milestones').insert(
+          nextMilestones.map((m, i) => ({
+            id: m.id, goal_id: id, label: m.label, done: m.done, sort_order: i,
+          }))
+        )
+      }
+    }
+
+    setGoals(g => g.map(gl => {
+      if (gl.id !== id) return gl
+      const local = { ...gl, ...updates }
+      if (nextMilestones) local.milestones = nextMilestones
+      return local
+    }))
+  }
+
   const toggleMilestone = async (goalId, milestoneId) => {
     const goal = goals.find(g => g.id === goalId)
     const milestone = goal?.milestones?.find(m => m.id === milestoneId)
@@ -565,6 +603,21 @@ function AppProvider({ children, spaceId }) {
     setHealth(h => ({ ...h, habits: [...h.habits, { id, label, category, emoji, color, minutes, isDefault: false }] }))
   }
 
+  const updateHabit = async (id, updates) => {
+    const dbUpdates = {}
+    if (updates.label !== undefined) dbUpdates.label = updates.label
+    if (updates.emoji !== undefined) dbUpdates.emoji = updates.emoji
+    if (updates.minutes !== undefined) dbUpdates.minutes = updates.minutes || null
+    if (updates.color !== undefined) dbUpdates.color = updates.color || null
+    if (Object.keys(dbUpdates).length) {
+      await supabase.from('habits').update(dbUpdates).eq('id', id).eq('space_id', spaceId)
+    }
+    setHealth(h => ({
+      ...h,
+      habits: h.habits.map(hb => hb.id === id ? { ...hb, ...updates } : hb),
+    }))
+  }
+
   const deleteHabit = async (id) => {
     await supabase.from('habits').delete().eq('id', id).eq('space_id', spaceId)
     setHealth(h => ({ ...h, habits: h.habits.filter(hb => hb.id !== id) }))
@@ -586,8 +639,8 @@ function AppProvider({ children, spaceId }) {
       addLent, deleteLent, addRepayment, deleteRepayment,
       timeBlocks, addTimeBlock, updateTimeBlock, deleteTimeBlock, logTime,
       tasks, addTask, updateTask, deleteTask, cycleTaskStatus,
-      goals, addGoal, deleteGoal, toggleMilestone,
-      health, getHealthDay, toggleHabit, setProtein, addHabit, deleteHabit, todayKey,
+      goals, addGoal, updateGoal, deleteGoal, toggleMilestone,
+      health, getHealthDay, toggleHabit, setProtein, addHabit, updateHabit, deleteHabit, todayKey,
     }}>
       {children}
     </AppContext.Provider>

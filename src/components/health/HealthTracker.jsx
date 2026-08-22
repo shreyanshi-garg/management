@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Plus, Trash2, LayoutGrid, List } from 'lucide-react'
+import { Plus, LayoutGrid, List } from 'lucide-react'
 import EmojiPicker from '../shared/EmojiPicker'
 import { format } from 'date-fns'
 import { useApp } from '../../context/AppContext'
@@ -10,6 +10,7 @@ import SectionHero from '../shared/SectionHero'
 import ProgressRing from '../shared/ProgressRing'
 import DayStrip from '../shared/DayStrip'
 import PillButton from '../shared/PillButton'
+import Modal from '../shared/Modal'
 import HabitRow from './HabitRow'
 import HabitRings from './HabitRings'
 import HealthStats from './HealthStats'
@@ -19,6 +20,42 @@ const TERRA_DEEP = '#C4551F'
 const MINT_DEEP = '#3FA968'
 
 const inputStyle = { background: '#FBF5EC', border: '1.5px solid #F0E6D8' }
+
+function EditHabitModal({ habit, onSave, onClose }) {
+  const [label, setLabel] = useState(habit.label || '')
+  const [emoji, setEmoji] = useState(habit.emoji || '✨')
+  const [showPicker, setShowPicker] = useState(false)
+
+  const save = (e) => {
+    e.preventDefault()
+    if (!label.trim()) return
+    onSave({ label: label.trim(), emoji })
+    onClose()
+  }
+
+  return (
+    <Modal title="Edit habit ✏️" onClose={onClose} size="sm">
+      <form onSubmit={save} className="space-y-3">
+        <div className="flex gap-2">
+          <button type="button" onClick={() => setShowPicker(p => !p)}
+            className="w-11 h-[42px] rounded-2xl text-xl flex items-center justify-center shrink-0 transition-all hover:scale-105"
+            style={{ background: '#FBF5EC', border: showPicker ? '1.5px solid #E8703A' : '1.5px solid #F0E6D8' }}>
+            {emoji}
+          </button>
+          <input autoFocus value={label} onChange={e => setLabel(e.target.value)}
+            placeholder="Habit name…"
+            className="flex-1 rounded-2xl px-4 py-2.5 text-sm font-medium" style={inputStyle} />
+        </div>
+        {showPicker && (
+          <EmojiPicker selected={emoji} onSelect={e => { setEmoji(e); setShowPicker(false) }} />
+        )}
+        <PillButton type="submit" color={TERRA} deep={TERRA_DEEP}>
+          Save changes
+        </PillButton>
+      </form>
+    </Modal>
+  )
+}
 
 function AddHabitInline({ category, onAdd }) {
   const [label, setLabel] = useState('')
@@ -63,12 +100,13 @@ function AddHabitInline({ category, onAdd }) {
 }
 
 export default function HealthTracker() {
-  const { health, getHealthDay, toggleHabit, setProtein, addHabit, deleteHabit, todayKey } = useApp()
+  const { health, getHealthDay, toggleHabit, setProtein, addHabit, updateHabit, deleteHabit, todayKey } = useApp()
   const [view, setView] = useState('today')
   const [layout, setLayout] = useState('list')
   const [activeTab, setActiveTab] = useState('food')
   const [selectedDate, setSelectedDate] = useState(todayKey)
   const [weekOffset, setWeekOffset] = useState(0)
+  const [editHabit, setEditHabit] = useState(null)
 
   const { byId, bestStreak } = useHabitStats(30)
 
@@ -252,6 +290,8 @@ export default function HealthTracker() {
                   checked={!!day.habits[h.id]}
                   streak={byId[h.id]?.streak ?? 0}
                   onToggle={() => handleToggle(h.id)}
+                  onEdit={setEditHabit}
+                  onDelete={deleteHabit}
                   isLast={i === currentHabits.length - 1}
                 />
               ))
@@ -262,6 +302,8 @@ export default function HealthTracker() {
                   rateFor={id => byId[id]?.rate ?? 0}
                   streakFor={id => byId[id]?.streak ?? 0}
                   onToggle={handleToggle}
+                  onEdit={setEditHabit}
+                  onDelete={deleteHabit}
                 />
               )}
 
@@ -274,26 +316,16 @@ export default function HealthTracker() {
             <div className="pt-2">
               <AddHabitInline category={activeTab} onAdd={addHabit} />
             </div>
-
-            {currentHabits.some(h => !h.isDefault) && (
-              <div className="pt-2 space-y-1" style={{ borderTop: '1px solid #F4EADC' }}>
-                <p className="text-[10px] font-bold uppercase tracking-wider pt-2 px-1" style={{ color: '#DCCBB4' }}>
-                  Your custom habits
-                </p>
-                {currentHabits.filter(h => !h.isDefault).map(h => (
-                  <div key={h.id} className="flex items-center justify-between px-3 py-1.5 rounded-xl group hover:bg-[#FBF5EC]">
-                    <span className="text-[12px] font-semibold" style={{ color: '#9C8877' }}>{h.emoji} {h.label}</span>
-                    <button onClick={() => deleteHabit(h.id)}
-                      aria-label={`Delete ${h.label}`}
-                      className="p-1.5 -m-1.5 md:opacity-0 md:group-hover:opacity-100" style={{ color: '#DCCBB4' }}>
-                      <Trash2 size={14} />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
           </div>
         </div>
+      )}
+
+      {editHabit && (
+        <EditHabitModal
+          habit={editHabit}
+          onSave={(updates) => updateHabit(editHabit.id, updates)}
+          onClose={() => setEditHabit(null)}
+        />
       )}
     </div>
   )

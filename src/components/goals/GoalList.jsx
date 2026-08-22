@@ -1,39 +1,54 @@
 import { useState } from 'react'
-import { Plus, Trash2 } from 'lucide-react'
-import { format } from 'date-fns'
+import { Plus, Trash2, Edit2 } from 'lucide-react'
+import { format, parseISO } from 'date-fns'
 import { useApp } from '../../context/AppContext'
+import { dayKey } from '../../utils/date'
 import { celebrate } from '../shared/CelebrationToast'
 import Modal from '../shared/Modal'
 import ProgressBar from '../shared/ProgressBar'
 import ProgressRing from '../shared/ProgressRing'
 import EmptyState from '../shared/EmptyState'
+import HistoryBrowser from '../shared/HistoryBrowser'
 
 const LAV = '#C3A6E8'
 const LAV_DEEP = '#9061C2'
+const HISTORY_ACCENT = { main: LAV, deep: LAV_DEEP, light: '#F7F0FF' }
 
 const STEP_MESSAGES = ['One step closer 🌷', 'Look at that progress ✨', 'Keep blooming 🌸', "You're getting there 💜"]
 
 const inputStyle = { background: '#FBF5EC', border: '1.5px solid #F0E6D8' }
 const inputCls = 'w-full rounded-2xl px-4 py-2.5 text-sm font-medium'
 
-function AddGoalModal({ onAdd, onClose }) {
-  const [title, setTitle] = useState('')
-  const [desc, setDesc] = useState('')
-  const [target, setTarget] = useState('')
-  const [milestones, setMilestones] = useState([''])
+function GoalModal({ goal, onSave, onClose }) {
+  const [title, setTitle] = useState(goal?.title || '')
+  const [desc, setDesc] = useState(goal?.description || '')
+  const [target, setTarget] = useState(goal?.targetDate || '')
+  const [milestones, setMilestones] = useState(() => {
+    if (goal?.milestones?.length) {
+      return goal.milestones.map(m => ({ id: m.id, label: m.label, done: !!m.done }))
+    }
+    return [{ id: null, label: '', done: false }]
+  })
 
-  const setM = (i, v) => setMilestones(m => m.map((mi, idx) => idx === i ? v : mi))
+  const setM = (i, v) => setMilestones(m => m.map((mi, idx) => idx === i ? { ...mi, label: v } : mi))
 
   const submit = (e) => {
     e.preventDefault()
     if (!title.trim()) return
-    const ms = milestones.filter(m => m.trim()).map((label, i) => ({ id: Date.now() + i, label: label.trim(), done: false }))
-    onAdd({ title: title.trim(), description: desc.trim(), targetDate: target, milestones: ms })
+    const ms = milestones
+      .filter(m => m.label.trim())
+      .map(m => ({ id: m.id || undefined, label: m.label.trim(), done: !!m.done }))
+    onSave({
+      title: title.trim(),
+      description: desc.trim(),
+      targetDate: target,
+      milestones: ms,
+    })
     onClose()
   }
 
   return (
-    <Modal title="Dream something up 🌙" onClose={onClose} size="lg">
+    <Modal title={goal ? 'Edit goal ✏️' : 'Dream something up 🌙'} onClose={onClose} size="lg">
       <form onSubmit={submit} className="space-y-4">
         <div>
           <label className="block text-[13px] font-semibold mb-1.5" style={{ color: '#9C8877' }}>Your goal</label>
@@ -41,9 +56,10 @@ function AddGoalModal({ onAdd, onClose }) {
             className={inputCls} style={inputStyle} placeholder="What do you want to achieve?" />
         </div>
         <div>
-          <label className="block text-[13px] font-semibold mb-1.5" style={{ color: '#9C8877' }}>Why it matters</label>
-          <textarea value={desc} onChange={e => setDesc(e.target.value)} rows={2}
-            className={`${inputCls} resize-none`} style={inputStyle} placeholder="A little note to future you…" />
+          <label className="block text-[13px] font-semibold mb-1.5" style={{ color: '#9C8877' }}>Instructions</label>
+          <textarea value={desc} onChange={e => setDesc(e.target.value)} rows={3}
+            className={`${inputCls} resize-none`} style={inputStyle}
+            placeholder="Specific things you need to do for this goal…" />
         </div>
         <div>
           <label className="block text-[13px] font-semibold mb-1.5" style={{ color: '#9C8877' }}>Target date</label>
@@ -54,16 +70,16 @@ function AddGoalModal({ onAdd, onClose }) {
           <div className="flex items-center justify-between mb-2">
             <label className="text-[13px] font-semibold" style={{ color: '#9C8877' }}>Milestones</label>
             {milestones.length < 10 && (
-              <button type="button" onClick={() => setMilestones(m => [...m, ''])}
+              <button type="button" onClick={() => setMilestones(m => [...m, { id: null, label: '', done: false }])}
                 className="text-[12px] font-bold" style={{ color: LAV_DEEP }}>+ Add step</button>
             )}
           </div>
           <div className="space-y-2">
             {milestones.map((m, i) => (
-              <div key={i} className="flex items-center gap-2">
+              <div key={m.id || `new-${i}`} className="flex items-center gap-2">
                 <span className="w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0"
                   style={{ background: '#F7F0FF', color: LAV_DEEP }}>{i + 1}</span>
-                <input value={m} onChange={e => setM(i, e.target.value)}
+                <input value={m.label} onChange={e => setM(i, e.target.value)}
                   className="flex-1 rounded-2xl px-3.5 py-2 text-sm font-medium" style={inputStyle}
                   placeholder={`Step ${i + 1}…`} />
                 {milestones.length > 1 && (
@@ -76,14 +92,14 @@ function AddGoalModal({ onAdd, onClose }) {
         </div>
         <button type="submit" className="w-full py-3.5 rounded-2xl font-bold text-sm text-white"
           style={{ background: `linear-gradient(135deg,${LAV},#FF9EBB)`, boxShadow: '0 6px 18px rgba(144,97,194,0.26)' }}>
-          Create goal
+          {goal ? 'Save changes' : 'Create goal'}
         </button>
       </form>
     </Modal>
   )
 }
 
-function GoalCard({ goal, onToggle, onDelete }) {
+function GoalCard({ goal, onToggle, onEdit, onDelete }) {
   const done = goal.milestones.filter(m => m.done).length
   const total = goal.milestones.length
   const progress = total ? Math.round((done / total) * 100) : 0
@@ -99,7 +115,7 @@ function GoalCard({ goal, onToggle, onDelete }) {
   }
 
   return (
-    <div className="soft-card rounded-3xl p-4 sm:p-5 relative overflow-hidden"
+    <div className="group soft-card rounded-3xl p-4 sm:p-5 relative overflow-hidden"
       style={isComplete
         ? { background: 'linear-gradient(140deg,#FBF3FF,#FFF9F2)', border: `1.5px solid ${LAV}66` }
         : {}}>
@@ -114,7 +130,7 @@ function GoalCard({ goal, onToggle, onDelete }) {
             <h3 className="font-semibold text-[17px] leading-snug" style={{ color: '#4A3A30' }}>{goal.title}</h3>
           </div>
           {goal.description && (
-            <p className="text-[12.5px] mt-1 font-medium" style={{ color: '#9C8877' }}>{goal.description}</p>
+            <p className="text-[12.5px] mt-1 font-medium line-clamp-2" style={{ color: '#9C8877' }}>{goal.description}</p>
           )}
           {goal.targetDate && (
             <span className="inline-flex items-center gap-1 mt-2 px-2.5 py-1 rounded-full text-[11px] font-bold"
@@ -124,10 +140,24 @@ function GoalCard({ goal, onToggle, onDelete }) {
           )}
         </div>
 
-        {/* progress ring */}
-        <ProgressRing value={progress} size={56} stroke={6} color={LAV}>
-          <span className="text-[12px] font-bold" style={{ color: LAV_DEEP }}>{progress}%</span>
-        </ProgressRing>
+        <div className="flex items-start gap-2 shrink-0">
+          {/* Always visible on touch — hover reveal only makes sense with a pointer. */}
+          <div className="flex gap-1 md:opacity-0 md:group-hover:opacity-100 transition-opacity shrink-0">
+            <button type="button" onClick={() => onEdit(goal)}
+              aria-label="Edit goal"
+              className="p-2 md:p-1.5 rounded-xl hover:bg-[#FBF5EC]" style={{ color: '#B5A28C' }}>
+              <Edit2 size={15} />
+            </button>
+            <button type="button" onClick={() => onDelete(goal.id)}
+              aria-label="Delete goal"
+              className="p-2 md:p-1.5 rounded-xl hover:bg-[#FFF0F5]" style={{ color: '#DCCBB4' }}>
+              <Trash2 size={15} />
+            </button>
+          </div>
+          <ProgressRing value={progress} size={56} stroke={6} color={LAV}>
+            <span className="text-[12px] font-bold" style={{ color: LAV_DEEP }}>{progress}%</span>
+          </ProgressRing>
+        </div>
       </div>
 
       <div className="relative mb-4">
@@ -138,14 +168,13 @@ function GoalCard({ goal, onToggle, onDelete }) {
         <ProgressBar value={progress} color={LAV} height={8} />
       </div>
 
-      {/* pb-9 leaves room for the always-visible mobile delete button */}
       {total > 0 && (
-        <div className="relative space-y-2 pb-9 md:pb-0">
+        <div className="relative space-y-2">
           {goal.milestones.map((ms, i) => (
-            <button key={ms.id} onClick={() => handleToggle(ms.id)}
-              className="w-full flex items-center gap-3 text-left px-3 py-2 rounded-2xl group transition-colors"
+            <button key={ms.id} type="button" onClick={() => handleToggle(ms.id)}
+              className="w-full flex items-center gap-3 text-left px-3 py-2 rounded-2xl group/step transition-colors"
               style={{ background: ms.done ? '#FAF5FF' : '#FBF5EC' }}>
-              <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 transition-all group-hover:scale-110"
+              <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 transition-all group-hover/step:scale-110"
                 style={ms.done
                   ? { background: `linear-gradient(135deg,${LAV},#FF9EBB)` }
                   : { background: '#fff', boxShadow: 'inset 0 0 0 2px #E7DAC7' }}>
@@ -161,24 +190,31 @@ function GoalCard({ goal, onToggle, onDelete }) {
           ))}
         </div>
       )}
-
-      <button onClick={() => onDelete(goal.id)}
-        aria-label="Delete goal"
-        className="absolute bottom-3 right-3 p-2 rounded-xl md:opacity-0 md:hover:opacity-100 md:focus:opacity-100"
-        style={{ color: '#DCCBB4' }}>
-        <Trash2 size={15} />
-      </button>
     </div>
   )
 }
 
 export default function GoalList() {
-  const { goals, addGoal, deleteGoal, toggleMilestone } = useApp()
+  const { goals, addGoal, updateGoal, deleteGoal, toggleMilestone } = useApp()
   const [showModal, setShowModal] = useState(false)
+  const [editGoal, setEditGoal] = useState(null)
+  const [filter, setFilter] = useState('active') // 'active' | 'history'
 
   const isDone = g => g.milestones.length > 0 && g.milestones.every(m => m.done)
   const active = goals.filter(g => !isDone(g))
   const achieved = goals.filter(isDone)
+
+  const historyItems = achieved.map(g => ({
+    ...g,
+    date: g.createdAt ? dayKey(parseISO(g.createdAt)) : dayKey(),
+  }))
+
+  const handleSave = (form) => {
+    if (editGoal) updateGoal(editGoal.id, form)
+    else addGoal(form)
+  }
+  const handleEdit = (g) => { setEditGoal(g); setShowModal(true) }
+  const handleClose = () => { setShowModal(false); setEditGoal(null) }
 
   return (
     <div className="p-4 sm:p-6 md:p-8 max-w-3xl mx-auto space-y-5">
@@ -194,35 +230,62 @@ export default function GoalList() {
             Big things start with small steps 🌙
           </p>
         </div>
-        <button onClick={() => setShowModal(true)}
+        <button type="button" onClick={() => { setEditGoal(null); setShowModal(true) }}
           className="relative flex items-center gap-1.5 px-5 py-2.5 rounded-full text-[13px] font-bold text-white shrink-0"
           style={{ background: `linear-gradient(135deg,${LAV},#FF9EBB)`, boxShadow: '0 6px 18px rgba(144,97,194,0.28)' }}>
           <Plus size={15} /> New goal
         </button>
       </div>
 
-      {goals.length === 0 && (
-        <EmptyState emoji="🌙" title="Your dreams go here" subtitle="Set your first goal and break it into little steps" />
+      <div className="flex gap-1.5 flex-wrap">
+        {[
+          ['active', 'Active'],
+          ['history', `🗂️ History (${achieved.length})`],
+        ].map(([id, label]) => (
+          <button key={id} type="button" onClick={() => setFilter(id)}
+            className="px-3 py-2 rounded-full text-[11px] font-bold whitespace-nowrap shrink-0"
+            style={filter === id
+              ? { background: LAV_DEEP, color: '#fff' }
+              : { background: 'rgba(255,255,255,0.7)', color: '#9C8877', border: '1px solid #F4EADC' }}>
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {filter === 'history' ? (
+        <HistoryBrowser
+          items={historyItems}
+          accent={HISTORY_ACCENT}
+          emptyEmoji="🏆"
+          emptyTitle="No finished goals yet"
+          emptySubtitle="Complete every step and it gets filed here by the day you created it"
+          summarize={list => `${list.length} achieved`}
+          renderDay={(list) => (
+            <div className="space-y-4">
+              {list.map(g => (
+                <GoalCard key={g.id} goal={g} onToggle={toggleMilestone} onEdit={handleEdit} onDelete={deleteGoal} />
+              ))}
+            </div>
+          )}
+        />
+      ) : (
+        <>
+          {active.length === 0 && (
+            <EmptyState emoji="🌙" title="Your dreams go here" subtitle="Set your first goal and break it into little steps" />
+          )}
+          {active.length > 0 && (
+            <div className="space-y-4">
+              {active.map(g => (
+                <GoalCard key={g.id} goal={g} onToggle={toggleMilestone} onEdit={handleEdit} onDelete={deleteGoal} />
+              ))}
+            </div>
+          )}
+        </>
       )}
 
-      {active.length > 0 && (
-        <div className="space-y-4">
-          {active.map(g => <GoalCard key={g.id} goal={g} onToggle={toggleMilestone} onDelete={deleteGoal} />)}
-        </div>
+      {showModal && (
+        <GoalModal goal={editGoal} onSave={handleSave} onClose={handleClose} />
       )}
-
-      {achieved.length > 0 && (
-        <div>
-          <p className="text-xs font-bold uppercase tracking-[0.14em] mb-3 px-1" style={{ color: '#B5A28C' }}>
-            🏆 Achieved
-          </p>
-          <div className="space-y-4">
-            {achieved.map(g => <GoalCard key={g.id} goal={g} onToggle={toggleMilestone} onDelete={deleteGoal} />)}
-          </div>
-        </div>
-      )}
-
-      {showModal && <AddGoalModal onAdd={addGoal} onClose={() => setShowModal(false)} />}
     </div>
   )
 }

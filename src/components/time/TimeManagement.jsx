@@ -183,17 +183,19 @@ function BlockRow({ block: bl, onStart, onToggleDone, onEdit, onDelete }) {
           : { background: '#EFFBF3', color: DONE_DEEP }}>
         <Check size={14} />
       </button>
-      <button onClick={() => onEdit(bl)} aria-label="Edit block"
-        className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
-        style={{ background: '#F7F0FF', color: '#9061C2' }}>
-        <Pencil size={13} />
-      </button>
-      <button onClick={() => onDelete(bl.id)}
-        aria-label="Delete block"
-        className="w-9 h-9 rounded-full flex items-center justify-center shrink-0 md:w-auto md:h-auto md:opacity-0 md:group-hover:opacity-100"
-        style={{ color: '#DCCBB4' }}>
-        <Trash2 size={14} />
-      </button>
+      <div className="flex items-center gap-1 shrink-0 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+        <button onClick={() => onEdit(bl)} aria-label="Edit block"
+          className="w-9 h-9 rounded-full flex items-center justify-center"
+          style={{ background: '#F7F0FF', color: '#9061C2' }}>
+          <Pencil size={13} />
+        </button>
+        <button onClick={() => onDelete(bl.id)}
+          aria-label="Delete block"
+          className="w-9 h-9 rounded-full flex items-center justify-center"
+          style={{ color: '#DCCBB4' }}>
+          <Trash2 size={14} />
+        </button>
+      </div>
     </div>
   )
 }
@@ -394,12 +396,18 @@ export default function TimeManagement() {
                       style={{ background: bl.done ? DONE_DEEP : '#CBE3ED' }}>
                       <Check size={9} />
                     </button>
-                    {/* Editing lives in the "all time blocks" list below — the
-                        chips only need done / delete. */}
-                    <button onClick={(e) => { e.stopPropagation(); deleteTimeBlock(bl.id) }}
-                      aria-label="Delete block"
-                      className="absolute -top-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center md:hidden md:group-hover:flex text-white text-[9px]"
-                      style={{ background: '#FF9EBB' }}>×</button>
+                    <div className="absolute -top-1 -right-1 flex gap-0.5 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+                      <button onClick={(e) => { e.stopPropagation(); setEditBlock(bl) }}
+                        aria-label="Edit block"
+                        className="w-4 h-4 rounded-full flex items-center justify-center text-white"
+                        style={{ background: '#9061C2' }}>
+                        <Pencil size={8} />
+                      </button>
+                      <button onClick={(e) => { e.stopPropagation(); deleteTimeBlock(bl.id) }}
+                        aria-label="Delete block"
+                        className="w-4 h-4 rounded-full flex items-center justify-center text-white text-[9px]"
+                        style={{ background: '#FF9EBB' }}>×</button>
+                    </div>
                   </div>
                 ))}
                 <button onClick={(e) => { e.stopPropagation(); setShowAdd(day) }}
