@@ -3,10 +3,13 @@ import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from 'recha
 import { Plus, Trash2, Settings, Sparkles, Pencil, Check, ChevronDown, ChevronRight, ArrowLeft } from 'lucide-react'
 import { format, startOfWeek, endOfWeek, parseISO } from 'date-fns'
 import { useApp } from '../../context/AppContext'
+import { dayKey } from '../../utils/date'
 import { celebrate } from '../shared/CelebrationToast'
 import Modal from '../shared/Modal'
 import EmptyState from '../shared/EmptyState'
 import EmojiPicker from '../shared/EmojiPicker'
+import HistoryBrowser from '../shared/HistoryBrowser'
+import Symbol from '../shared/Symbol'
 
 const HONEY = '#FFC38B'
 const HONEY_DEEP = '#E09B4C'
@@ -78,7 +81,7 @@ function SubcategoryPicker({ category, subcategories, selected, onSelect }) {
 function AddExpenseModal({ categories, subcategories, emojiFor, onAdd, onClose }) {
   const [form, setForm] = useState({
     amount: '', category: categories[0] || '', subcategory: '', note: '',
-    date: new Date().toISOString().split('T')[0],
+    date: dayKey(),
   })
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
   const setCategory = (c) => setForm(f => ({ ...f, category: c, subcategory: '' }))
@@ -105,7 +108,7 @@ function AddExpenseModal({ categories, subcategories, emojiFor, onAdd, onClose }
                 style={form.category === c
                   ? { background: HONEY, color: '#fff' }
                   : { background: '#FBF5EC', color: '#A6947F', border: '1.5px solid #F0E6D8' }}>
-                {(emojiFor ? emojiFor(c) : CATEGORY_EMOJI[c] || '✨')} {c}
+                <Symbol value={emojiFor ? emojiFor(c) : CATEGORY_EMOJI[c]} size={14} className="mr-1" /> {c}
               </button>
             ))}
           </div>
@@ -135,7 +138,7 @@ function AddExpenseModal({ categories, subcategories, emojiFor, onAdd, onClose }
   )
 }
 
-function EditExpenseModal({ expense, categories, subcategories, onSave, onClose }) {
+function EditExpenseModal({ expense, categories, subcategories, emojiFor, onSave, onClose }) {
   const [form, setForm] = useState({
     amount: String(expense.amount),
     category: expense.category,
@@ -168,7 +171,7 @@ function EditExpenseModal({ expense, categories, subcategories, onSave, onClose 
                 style={form.category === c
                   ? { background: HONEY, color: '#fff' }
                   : { background: '#FBF5EC', color: '#A6947F', border: '1.5px solid #F0E6D8' }}>
-                {CATEGORY_EMOJI[c] || '✨'} {c}
+                <Symbol value={emojiFor ? emojiFor(c) : CATEGORY_EMOJI[c]} size={14} className="mr-1" /> {c}
               </button>
             ))}
           </div>
@@ -201,7 +204,7 @@ function EditExpenseModal({ expense, categories, subcategories, onSave, onClose 
 function AddLentModal({ onAdd, onClose }) {
   const [form, setForm] = useState({
     personName: '', amount: '', note: '',
-    date: new Date().toISOString().split('T')[0],
+    date: dayKey(),
   })
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
   const submit = (e) => {
@@ -244,7 +247,7 @@ function AddLentModal({ onAdd, onClose }) {
 function AddRepaymentModal({ lent, onAdd, onClose }) {
   const [form, setForm] = useState({
     amount: '', note: '',
-    date: new Date().toISOString().split('T')[0],
+    date: dayKey(),
   })
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
   const submit = (e) => {
@@ -320,9 +323,10 @@ function CategoryManager({ categories, categoryEmojis, subcategories, onAdd, onD
       <form onSubmit={submit} className="space-y-3 mb-5">
         <div className="flex gap-2">
           <button type="button" onClick={() => setShowPicker(p => !p)}
-            className="w-12 h-[42px] rounded-2xl text-xl flex items-center justify-center shrink-0 transition-all hover:scale-105"
+            className="w-12 h-[42px] rounded-2xl flex items-center justify-center shrink-0 transition-all hover:scale-105"
+            aria-label="Choose a symbol for this category"
             style={{ background: '#FBF5EC', border: showPicker ? '1.5px solid #E8703A' : '1.5px solid #F0E6D8' }}>
-            {newEmoji}
+            <Symbol value={newEmoji} size={22} />
           </button>
           <input value={newCat} onChange={e => setNewCat(e.target.value)} placeholder="Category name…"
             className="flex-1 rounded-2xl px-4 py-2.5 text-sm font-medium" style={inputStyle} />
@@ -330,7 +334,7 @@ function CategoryManager({ categories, categoryEmojis, subcategories, onAdd, onD
             style={{ background: `linear-gradient(135deg,${HONEY},#F7A76C)` }}>Add</button>
         </div>
         {showPicker && (
-          <EmojiPicker selected={newEmoji} onSelect={e => { setNewEmoji(e); setShowPicker(false) }} />
+          <EmojiPicker selected={newEmoji} onSelect={e => setNewEmoji(e)} />
         )}
       </form>
 
@@ -349,11 +353,11 @@ function CategoryManager({ categories, categoryEmojis, subcategories, onAdd, onD
                 <div className="flex items-center gap-2">
                   <button type="button"
                     onClick={() => setEditingEmoji(editingEmoji === c ? null : c)}
-                    className="text-xl transition-all hover:scale-110"
-                    aria-label={`Change emoji for ${c}`}
-                    title="Tap to change emoji"
+                    className="transition-all hover:scale-110"
+                    aria-label={`Change symbol for ${c}`}
+                    title="Tap to change symbol"
                   >
-                    {emojiFor(c)}
+                    <Symbol value={emojiFor(c)} size={22} />
                   </button>
                   <span className="text-[13px] font-semibold" style={{ color: '#4A3A30' }}>{c}</span>
                   {subs.length > 0 && (
@@ -456,7 +460,70 @@ const GROUP_MODES = [
   { id: 'day', label: 'Day' },
   { id: 'week', label: 'Week' },
   { id: 'month', label: 'Month' },
+  { id: 'history', label: '🗂️ History' },
 ]
+
+const HISTORY_ACCENT = { main: HONEY, deep: HONEY_DEEP, light: '#FFF6EC' }
+
+const PERIOD_LABELS = { day: 'today', week: 'this week', month: 'this month' }
+
+/** Is this expense inside the current day / week / month? */
+function inPeriod(exp, mode) {
+  const d = expenseDate(exp)
+  const now = new Date()
+  if (mode === 'day') return format(d, 'yyyy-MM-dd') === dayKey(now)
+  if (mode === 'week') {
+    return format(startOfWeek(d, { weekStartsOn: 1 }), 'yyyy-MM-dd')
+      === format(startOfWeek(now, { weekStartsOn: 1 }), 'yyyy-MM-dd')
+  }
+  return format(d, 'yyyy-MM') === format(now, 'yyyy-MM')
+}
+
+/** One expense line — shared by the grouped list and the history day view. */
+function ExpenseRow({ exp, emojiFor, editMode, onEdit, onDelete }) {
+  return (
+    <div className="group flex items-center gap-3 px-4 py-3 rounded-2xl transition-all"
+      style={{ background: editMode ? '#FFF6EC' : '#FBF5EC' }}>
+      <span className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: '#fff' }}>
+        <Symbol value={emojiFor(exp.category)} size={18} />
+      </span>
+      <div className="flex-1 min-w-0">
+        <p className="text-[13px] font-bold truncate" style={{ color: '#4A3A30' }}>
+          {exp.category}
+          {exp.subcategory && (
+            <span className="font-semibold" style={{ color: '#9B82C4' }}> · {exp.subcategory}</span>
+          )}
+          {exp.note && <span className="font-medium" style={{ color: '#B5A28C' }}> · {exp.note}</span>}
+        </p>
+        <p className="text-[11px] font-semibold" style={{ color: '#B5A28C' }}>
+          {format(expenseDate(exp), 'MMM d, yyyy')}
+        </p>
+      </div>
+      <span className="font-bold text-sm shrink-0" style={{ color: HONEY_DEEP }}>
+        ₹{exp.amount.toLocaleString('en-IN')}
+      </span>
+      {/* Edit + delete — always visible in edit mode */}
+      <div className={`items-center gap-1 shrink-0 transition-opacity ${editMode ? 'flex opacity-100' : 'hidden md:flex md:opacity-0 md:group-hover:opacity-100'}`}>
+        <button
+          onClick={() => onEdit(exp)}
+          className="w-8 h-8 rounded-xl flex items-center justify-center transition-all hover:scale-105"
+          style={{ background: '#FFF6EC', color: HONEY_DEEP }}
+          aria-label="Edit expense"
+        >
+          <Pencil size={13} />
+        </button>
+        <button
+          onClick={() => onDelete(exp.id)}
+          className="w-8 h-8 rounded-xl flex items-center justify-center transition-all hover:scale-105"
+          style={{ background: '#FFF0F5', color: '#E5527A' }}
+          aria-label="Delete expense"
+        >
+          <Trash2 size={13} />
+        </button>
+      </div>
+    </div>
+  )
+}
 
 export default function MoneyDashboard() {
   const { money, addExpense, deleteExpense, updateExpense, updateIncome, addExpenseCategory, deleteExpenseCategory, setCategoryEmoji, addExpenseSubcategory, deleteExpenseSubcategory, addLent, deleteLent, addRepayment, deleteRepayment } = useApp()
@@ -522,7 +589,10 @@ export default function MoneyDashboard() {
   const pieData = drillCategory ? drillPieData : topLevelPieData
 
   const baseList = filterCat === 'All' ? money.expenses : money.expenses.filter(e => e.category === filterCat)
-  const groups = groupExpenses(baseList, groupMode)
+  // Day / Week / Month scope to the *current* period — the archive is History's job.
+  const periodList = groupMode === 'history' ? baseList : baseList.filter(e => inPeriod(e, groupMode))
+  const groups = groupExpenses(periodList, groupMode)
+  const periodLabel = PERIOD_LABELS[groupMode]
 
   const lentList = money.lent || []
   const totalOutstanding = lentList.reduce((s, l) => {
@@ -675,7 +745,7 @@ export default function MoneyDashboard() {
             </span>
             <span className="text-[11.5px] font-bold px-2.5 py-0.5 rounded-full"
               style={{ background: '#FFF6EC', color: HONEY_DEEP }}>
-              {baseList.length}
+              {groupMode === 'history' ? baseList.length : periodList.length}
             </span>
           </button>
           <div className="flex items-center gap-2" style={{ display: showExpenses ? undefined : 'none' }}>
@@ -720,8 +790,26 @@ export default function MoneyDashboard() {
           ))}
         </div>
 
-        {baseList.length === 0 ? (
-          <EmptyState emoji="🧾" title="No expenses here" subtitle="Nothing to see — that's a good thing!" />
+        {groupMode === 'history' ? (
+          <HistoryBrowser
+            items={baseList}
+            accent={HISTORY_ACCENT}
+            emptyEmoji="🧾"
+            emptyTitle="No expenses here"
+            emptySubtitle="Nothing to see — that's a good thing!"
+            summarize={list => `₹${list.reduce((s, e) => s + e.amount, 0).toLocaleString('en-IN')}`}
+            renderDay={(list) => (
+              <div className="space-y-1.5">
+                {[...list].sort((a, b) => expenseDate(b) - expenseDate(a)).map(exp => (
+                  <ExpenseRow key={exp.id} exp={exp} emojiFor={emojiFor} editMode={editMode}
+                    onEdit={setEditingExp} onDelete={deleteExpense} />
+                ))}
+              </div>
+            )}
+          />
+        ) : periodList.length === 0 ? (
+          <EmptyState emoji="🧾" title={`Nothing spent ${periodLabel}`}
+            subtitle="Check History for older expenses 🗂️" />
         ) : (
           <div className="space-y-4">
             {groups.map(group => (
@@ -739,47 +827,8 @@ export default function MoneyDashboard() {
 
                 <div className="space-y-1.5">
                   {group.items.map(exp => (
-                    <div key={exp.id} className="flex items-center gap-3 px-4 py-3 rounded-2xl transition-all"
-                      style={{ background: editMode ? '#FFF6EC' : '#FBF5EC' }}>
-                      <span className="w-9 h-9 rounded-xl flex items-center justify-center text-base shrink-0"
-                        style={{ background: '#fff' }}>
-                        {emojiFor(exp.category)}
-                      </span>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-[13px] font-bold truncate" style={{ color: '#4A3A30' }}>
-                          {exp.category}
-                          {exp.subcategory && (
-                            <span className="font-semibold" style={{ color: '#9B82C4' }}> · {exp.subcategory}</span>
-                          )}
-                          {exp.note && <span className="font-medium" style={{ color: '#B5A28C' }}> · {exp.note}</span>}
-                        </p>
-                        <p className="text-[11px] font-semibold" style={{ color: '#B5A28C' }}>
-                          {format(expenseDate(exp), 'MMM d, yyyy')}
-                        </p>
-                      </div>
-                      <span className="font-bold text-sm shrink-0" style={{ color: HONEY_DEEP }}>
-                        ₹{exp.amount.toLocaleString('en-IN')}
-                      </span>
-                      {/* Edit + delete — always visible in edit mode */}
-                      <div className={`items-center gap-1 shrink-0 transition-opacity ${editMode ? 'flex opacity-100' : 'hidden md:flex md:opacity-0 md:group-hover:opacity-100'}`}>
-                        <button
-                          onClick={() => setEditingExp(exp)}
-                          className="w-8 h-8 rounded-xl flex items-center justify-center transition-all hover:scale-105"
-                          style={{ background: '#FFF6EC', color: HONEY_DEEP }}
-                          aria-label="Edit expense"
-                        >
-                          <Pencil size={13} />
-                        </button>
-                        <button
-                          onClick={() => deleteExpense(exp.id)}
-                          className="w-8 h-8 rounded-xl flex items-center justify-center transition-all hover:scale-105"
-                          style={{ background: '#FFF0F5', color: '#E5527A' }}
-                          aria-label="Delete expense"
-                        >
-                          <Trash2 size={13} />
-                        </button>
-                      </div>
-                    </div>
+                    <ExpenseRow key={exp.id} exp={exp} emojiFor={emojiFor} editMode={editMode}
+                      onEdit={setEditingExp} onDelete={deleteExpense} />
                   ))}
                 </div>
               </div>
@@ -974,6 +1023,7 @@ export default function MoneyDashboard() {
           expense={editingExp}
           categories={money.categories}
           subcategories={subcategories}
+          emojiFor={emojiFor}
           onSave={(updates) => handleSaveExpense(editingExp.id, updates)}
           onClose={() => setEditingExp(null)}
         />

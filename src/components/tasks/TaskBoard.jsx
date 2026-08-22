@@ -1,11 +1,15 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Plus, Trash2, Edit2, Calendar } from 'lucide-react'
-import { format } from 'date-fns'
+import { format, parseISO } from 'date-fns'
 import { useApp } from '../../context/AppContext'
 import { celebrate } from '../shared/CelebrationToast'
 import Modal from '../shared/Modal'
 import Badge from '../shared/Badge'
 import EmptyState from '../shared/EmptyState'
+import EmojiPicker from '../shared/EmojiPicker'
+import Symbol from '../shared/Symbol'
+import HistoryBrowser from '../shared/HistoryBrowser'
+import { dayKey } from '../../utils/date'
 
 const ROSE = '#FF9EBB'
 
@@ -27,23 +31,61 @@ const DONE_MESSAGES = [
 const inputStyle = { background: '#FBF5EC', border: '1.5px solid #F0E6D8' }
 const inputCls = 'w-full rounded-2xl px-4 py-2.5 text-sm font-medium'
 
-function TaskModal({ task, onSave, onClose }) {
+const HISTORY_ACCENT = { main: ROSE, deep: '#E5527A', light: '#FFF0F5' }
+
+/** Stable index from a string id, so the same task always gets the same message. */
+function hashIndex(id, n) {
+  let h = 0
+  for (let i = 0; i < String(id).length; i++) h = (h * 31 + String(id).charCodeAt(i)) | 0
+  return Math.abs(h) % n
+}
+
+/** Remember the category per space so it survives navigation and reloads. */
+function readStoredCategory(spaceId) {
+  try {
+    const v = localStorage.getItem(`taskCategory:${spaceId}`)
+    return CATEGORIES.some(c => c.id === v) ? v : 'work'
+  } catch { return 'work' }
+}
+
+function TaskModal({ task, defaultCategory = 'work', onSave, onClose }) {
   const [form, setForm] = useState(task || {
-    title: '', description: '', category: 'work', priority: 'medium', dueDate: '', status: 'todo',
+    title: '', description: '', category: defaultCategory, priority: 'medium', dueDate: '', status: 'todo', emoji: '',
   })
+  const [showPicker, setShowPicker] = useState(false)
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
   const submit = (e) => {
     e.preventDefault()
     if (!form.title.trim()) return
     onSave(form); onClose()
   }
+  const catEmoji = (CATEGORIES.find(c => c.id === form.category) || CATEGORIES[0]).emoji
+
   return (
     <Modal title={task ? 'Edit task 🌷' : 'New task 🌸'} onClose={onClose}>
       <form onSubmit={submit} className="space-y-4">
         <div>
           <label className="block text-[13px] font-semibold mb-1.5" style={{ color: '#9C8877' }}>Task</label>
-          <input type="text" required autoFocus value={form.title} onChange={e => set('title', e.target.value)}
-            className={inputCls} style={inputStyle} placeholder="What would you like to do?" />
+          <div className="flex gap-2">
+            <button type="button" onClick={() => setShowPicker(o => !o)}
+              aria-label="Choose a symbol for this task"
+              className="w-[46px] rounded-2xl flex items-center justify-center shrink-0 transition-all"
+              style={showPicker
+                ? { background: '#FFF0F5', boxShadow: `inset 0 0 0 1.5px ${ROSE}` }
+                : { background: '#FBF5EC', border: '1.5px solid #F0E6D8' }}>
+              <Symbol value={form.emoji} size={22} fallback={catEmoji} />
+            </button>
+            <input type="text" required autoFocus value={form.title} onChange={e => set('title', e.target.value)}
+              className={inputCls} style={inputStyle} placeholder="What would you like to do?" />
+          </div>
+          {showPicker && (
+            <div className="mt-2">
+              <EmojiPicker selected={form.emoji} onSelect={v => set('emoji', v)} />
+              <p className="text-[11px] font-semibold mt-1.5" style={{ color: '#DCCBB4' }}>
+                Leave it empty to use the category symbol {catEmoji}
+              </p>
+            </div>
+          )}
         </div>
         <div>
           <label className="block text-[13px] font-semibold mb-1.5" style={{ color: '#9C8877' }}>Notes</label>
@@ -104,7 +146,8 @@ function TaskCard({ task, onCycle, onEdit, onDelete }) {
     const next = STATUS_CYCLE[task.status]
     onCycle(task.id)
     if (next === 'done') {
-      celebrate(DONE_MESSAGES[Math.floor(task.id % DONE_MESSAGES.length)], '🎀', true)
+      // Task ids are UUID strings, so `id % n` was always NaN — hash the string.
+      celebrate(DONE_MESSAGES[hashIndex(task.id, DONE_MESSAGES.length)], '🎀', true)
     }
   }
 
@@ -124,9 +167,10 @@ function TaskCard({ task, onCycle, onEdit, onDelete }) {
         </button>
 
         <div className="flex-1 min-w-0">
-          <p className="text-[14px] font-bold leading-snug"
+          <p className="text-[14px] font-bold leading-snug flex items-center gap-1.5"
             style={{ color: isDone ? '#B5A28C' : '#4A3A30', textDecoration: isDone ? 'line-through' : 'none' }}>
-            {task.title}
+            <Symbol value={task.emoji} size={18} fallback={cat.emoji} />
+            <span className="min-w-0">{task.title}</span>
           </p>
           {task.description && (
             <p className="text-[12px] mt-1 font-medium" style={{ color: '#B5A28C' }}>{task.description}</p>
@@ -158,15 +202,30 @@ function TaskCard({ task, onCycle, onEdit, onDelete }) {
 }
 
 export default function TaskBoard() {
-  const { tasks, addTask, updateTask, deleteTask, cycleTaskStatus } = useApp()
-  const [activeTab, setActiveTab] = useState('work')
+  const { tasks, addTask, updateTask, deleteTask, cycleTaskStatus, spaceId } = useApp()
+  const [activeTab, setActiveTab] = useState(() => readStoredCategory(spaceId))
   const [filterStatus, setFilterStatus] = useState('all')
   const [showModal, setShowModal] = useState(false)
   const [editTask, setEditTask] = useState(null)
 
+  useEffect(() => {
+    try { localStorage.setItem(`taskCategory:${spaceId}`, activeTab) } catch { /* private mode */ }
+  }, [activeTab, spaceId])
+
   const tabTasks = tasks.filter(t => t.category === activeTab)
-  const filtered = filterStatus === 'all' ? tabTasks : tabTasks.filter(t => t.status === filterStatus)
+  // Finished tasks leave the board — they live in the history folders instead.
+  const openTasks = [...tabTasks]
+    .filter(t => t.status !== 'done')
+    .sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)))
+  const doneTasks = tabTasks.filter(t => t.status === 'done')
+  const filtered = filterStatus === 'all' ? openTasks : openTasks.filter(t => t.status === filterStatus)
   const activeCat = CATEGORIES.find(c => c.id === activeTab)
+
+  // Filed under the day the task was created, per the archive design.
+  const historyItems = doneTasks.map(t => ({
+    ...t,
+    date: t.createdAt ? dayKey(parseISO(t.createdAt)) : dayKey(),
+  }))
 
   const handleSave = (form) => {
     if (editTask) updateTask(editTask.id, form)
@@ -208,13 +267,13 @@ export default function TaskBoard() {
       {/* Filters + add */}
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div className="flex gap-1.5 flex-wrap">
-          {['all', 'todo', 'inProgress', 'done'].map(s => (
+          {['all', 'todo', 'inProgress', 'history'].map(s => (
             <button key={s} onClick={() => setFilterStatus(s)}
               className="px-3 py-2 rounded-full text-[11px] font-bold whitespace-nowrap shrink-0"
               style={filterStatus === s
                 ? { background: ROSE, color: '#fff' }
                 : { background: 'rgba(255,255,255,0.7)', color: '#9C8877', border: '1px solid #F4EADC' }}>
-              {s === 'all' ? 'All' : STATUS_LABELS[s]}
+              {s === 'all' ? 'All' : s === 'history' ? `🗂️ History (${doneTasks.length})` : STATUS_LABELS[s]}
             </button>
           ))}
         </div>
@@ -240,7 +299,23 @@ export default function TaskBoard() {
       )}
 
       {/* List */}
-      {filtered.length === 0 ? (
+      {filterStatus === 'history' ? (
+        <HistoryBrowser
+          items={historyItems}
+          accent={HISTORY_ACCENT}
+          emptyEmoji="🗂️"
+          emptyTitle={`No finished ${activeCat.label} tasks yet`}
+          emptySubtitle="Tick one off and it gets filed here by the day you created it"
+          summarize={list => `${list.length} finished`}
+          renderDay={(list) => (
+            <div className="space-y-2.5">
+              {list.map(t => (
+                <TaskCard key={t.id} task={t} onCycle={cycleTaskStatus} onEdit={handleEdit} onDelete={deleteTask} />
+              ))}
+            </div>
+          )}
+        />
+      ) : filtered.length === 0 ? (
         <EmptyState emoji={activeCat.emoji} title={`Nothing in ${activeCat.label} yet`} subtitle="Add your first task and get going ✨" />
       ) : (
         <div className="space-y-2.5">
@@ -250,7 +325,9 @@ export default function TaskBoard() {
         </div>
       )}
 
-      {showModal && <TaskModal task={editTask} onSave={handleSave} onClose={handleClose} />}
+      {showModal && (
+        <TaskModal task={editTask} defaultCategory={activeTab} onSave={handleSave} onClose={handleClose} />
+      )}
     </div>
   )
 }

@@ -67,8 +67,10 @@ function AppProvider({ children, spaceId }) {
         category: row.category,
         priority: row.priority,
         status: row.status,
+        emoji: row.emoji || '',
         dueDate: row.due_date || '',
         createdAt: row.created_at,
+        completedAt: row.completed_at || null,
       })))
     } else {
       setTasks([])
@@ -166,11 +168,14 @@ function AppProvider({ children, spaceId }) {
           id: row.id,
           title: row.title,
           date: row.date,
-          startTime: row.start_time || '',
-          endTime: row.end_time || '',
+          // Postgres `time` comes back as HH:MM:SS; the UI and clock picker
+          // both speak HH:MM.
+          startTime: (row.start_time || '').slice(0, 5),
+          endTime: (row.end_time || '').slice(0, 5),
           hours: row.planned_hours ? Number(row.planned_hours) : 0,
           timeLogs: logs,
           progress,
+          done: !!row.done,
         }
       }))
     } else {
@@ -249,7 +254,7 @@ function AppProvider({ children, spaceId }) {
       .from('expense_categories').select('id')
       .eq('space_id', spaceId).eq('name', expense.category).maybeSingle()
     const id = uid()
-    const dateStr = expense.date ? expense.date.split('T')[0] : new Date().toISOString().split('T')[0]
+    const dateStr = expense.date ? expense.date.split('T')[0] : dayKey()
     await supabase.from('expenses').insert({
       id, space_id: spaceId, date: dateStr,
       amount: Number(expense.amount), category_id: cat?.id || null,
@@ -338,7 +343,7 @@ function AppProvider({ children, spaceId }) {
 
   const addLent = async ({ personName, amount, date, note }) => {
     const id = uid()
-    const dateStr = date ? date.split('T')[0] : new Date().toISOString().split('T')[0]
+    const dateStr = date ? date.split('T')[0] : dayKey()
     await supabase.from('money_lent').insert({
       id, space_id: spaceId, person_name: personName,
       amount: Number(amount), date: dateStr, note: note || null,
@@ -353,7 +358,7 @@ function AppProvider({ children, spaceId }) {
 
   const addRepayment = async (lentId, { amount, date, note }) => {
     const id = uid()
-    const dateStr = date ? date.split('T')[0] : new Date().toISOString().split('T')[0]
+    const dateStr = date ? date.split('T')[0] : dayKey()
     await supabase.from('money_lent_repayments').insert({
       id, lent_id: lentId, amount: Number(amount), date: dateStr, note: note || null,
     })
@@ -387,7 +392,7 @@ function AppProvider({ children, spaceId }) {
       start_time: block.startTime || null, end_time: block.endTime || null,
       planned_hours: block.hours || null,
     })
-    setTimeBlocks(b => [...b, { id, timeLogs: [], progress: 0, ...block }])
+    setTimeBlocks(b => [...b, { id, timeLogs: [], progress: 0, done: false, ...block }])
   }
 
   const updateTimeBlock = async (id, updates) => {
@@ -397,6 +402,7 @@ function AppProvider({ children, spaceId }) {
     if (updates.startTime !== undefined) dbUpdates.start_time = updates.startTime
     if (updates.endTime !== undefined) dbUpdates.end_time = updates.endTime
     if (updates.hours !== undefined) dbUpdates.planned_hours = updates.hours
+    if (updates.done !== undefined) dbUpdates.done = updates.done
     if (Object.keys(dbUpdates).length) await supabase.from('time_blocks').update(dbUpdates).eq('id', id)
     setTimeBlocks(b => b.map(bl => bl.id === id ? { ...bl, ...updates } : bl))
   }
@@ -407,7 +413,7 @@ function AppProvider({ children, spaceId }) {
   }
 
   const logTime = async (id, seconds) => {
-    const logDate = new Date().toISOString().split('T')[0]
+    const logDate = dayKey()
     await supabase.from('time_logs').insert({ id: uid(), time_block_id: id, log_date: logDate, seconds })
     setTimeBlocks(b => b.map(bl => {
       if (bl.id !== id) return bl
@@ -426,9 +432,10 @@ function AppProvider({ children, spaceId }) {
       id, space_id: spaceId, title: task.title,
       description: task.description || null, category: task.category || 'misc',
       priority: task.priority || 'medium', status: 'todo',
+      emoji: task.emoji || null,
       due_date: task.dueDate || null,
     })
-    setTasks(t => [{ id, status: 'todo', createdAt: new Date().toISOString(), ...task }, ...t])
+    setTasks(t => [{ id, createdAt: new Date().toISOString(), completedAt: null, ...task, status: 'todo' }, ...t])
   }
 
   const updateTask = async (id, updates) => {
@@ -437,10 +444,26 @@ function AppProvider({ children, spaceId }) {
     if (updates.description !== undefined) dbUpdates.description = updates.description
     if (updates.category !== undefined) dbUpdates.category = updates.category
     if (updates.priority !== undefined) dbUpdates.priority = updates.priority
-    if (updates.status !== undefined) dbUpdates.status = updates.status
+    if (updates.emoji !== undefined) dbUpdates.emoji = updates.emoji || null
     if (updates.dueDate !== undefined) dbUpdates.due_date = updates.dueDate || null
+
+    // Finishing a task stamps it; un-finishing clears the stamp. The history
+    // browser groups by creation date, but the stamp is what it shows.
+    const local = { ...updates }
+    const prev = tasks.find(t => t.id === id)
+    if (updates.status !== undefined) {
+      dbUpdates.status = updates.status
+      // Only stamp on an actual transition, so editing a finished task's title
+      // does not move it to a different day in the archive.
+      if (updates.status !== prev?.status) {
+        const completedAt = updates.status === 'done' ? new Date().toISOString() : null
+        dbUpdates.completed_at = completedAt
+        local.completedAt = completedAt
+      }
+    }
+
     if (Object.keys(dbUpdates).length) await supabase.from('tasks').update(dbUpdates).eq('id', id)
-    setTasks(t => t.map(tk => tk.id === id ? { ...tk, ...updates } : tk))
+    setTasks(t => t.map(tk => tk.id === id ? { ...tk, ...local } : tk))
   }
 
   const deleteTask = async (id) => {
@@ -557,6 +580,7 @@ function AppProvider({ children, spaceId }) {
 
   return (
     <AppContext.Provider value={{
+      spaceId,
       money, addExpense, deleteExpense, updateExpense, updateIncome,
       addExpenseCategory, deleteExpenseCategory, setCategoryEmoji, addExpenseSubcategory, deleteExpenseSubcategory,
       addLent, deleteLent, addRepayment, deleteRepayment,

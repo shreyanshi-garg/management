@@ -1,11 +1,14 @@
 import { useState } from 'react'
 import { useSpace } from '../../context/SpaceContext'
 import { useAuth } from '../../context/AuthContext'
+import EmojiPicker from '../shared/EmojiPicker'
+import Symbol from '../shared/Symbol'
 
 function NewSpaceForm({ onDone }) {
   const { addSpace } = useSpace()
   const [name, setName] = useState('')
-  const [emoji, setEmoji] = useState('')
+  const [emoji, setEmoji] = useState('🌟')
+  const [showPicker, setShowPicker] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -27,13 +30,15 @@ function NewSpaceForm({ onDone }) {
   return (
     <form onSubmit={handleCreate} className="flex flex-col gap-3 mt-1">
       <div className="flex gap-2">
-        <input
-          value={emoji}
-          onChange={e => setEmoji(e.target.value)}
-          placeholder="🌟"
-          className="w-12 text-center border rounded-xl px-2 py-2.5 text-sm outline-none"
-          style={{ borderColor: '#F4EADC', color: '#4A3A30' }}
-        />
+        <button
+          type="button"
+          onClick={() => setShowPicker(p => !p)}
+          aria-label="Choose a picture or symbol for this space"
+          className="w-12 h-[42px] rounded-xl flex items-center justify-center shrink-0 transition-all hover:scale-105"
+          style={{ border: showPicker ? '1.5px solid #E5527A' : '1.5px solid #F4EADC', background: '#FFFDFB' }}
+        >
+          <Symbol value={emoji} size={22} fallback="🌟" />
+        </button>
         <input
           autoFocus
           value={name}
@@ -43,6 +48,8 @@ function NewSpaceForm({ onDone }) {
           style={{ borderColor: '#F4EADC', color: '#4A3A30' }}
         />
       </div>
+
+      {showPicker && <EmojiPicker selected={emoji} onSelect={setEmoji} />}
 
       <p className="text-[11px]" style={{ color: '#B5A28C' }}>
         You'll be its owner. Invite others by email from space settings.
@@ -100,7 +107,7 @@ export default function SpaceSelectionPage() {
               boxShadow: '0 2px 16px rgba(74,58,48,0.06)',
             }}
           >
-            <span className="text-4xl transition-transform group-hover:scale-110">{space.emoji}</span>
+            <Symbol value={space.emoji} size={48} className="transition-transform group-hover:scale-110" fallback="🌟" />
             <span className="text-sm font-semibold" style={{ fontFamily: 'Fraunces, serif', color: '#4A3A30' }}>
               {space.name}
             </span>

@@ -1,6 +1,7 @@
 import { format } from 'date-fns'
 import { ACCENT, SpaceSwitcher } from './Sidebar'
 import { useSpace } from '../../context/SpaceContext'
+import { isImageSymbol } from '../../utils/image'
 
 const SECTION_META = {
   money:  { label: 'Money Management', emoji: '💰' },
@@ -45,12 +46,20 @@ export default function Header({ section }) {
         <div className="md:hidden">
           <SpaceSwitcher compact />
         </div>
-        <span
-          className="hidden md:flex w-8 h-8 rounded-full items-center justify-center text-xs font-bold text-white"
-          style={{ background: 'linear-gradient(135deg,#FF9EBB,#C3A6E8)' }}
-        >
-          {initial}
-        </span>
+        {isImageSymbol(activeSpace.emoji) ? (
+          <img
+            src={activeSpace.emoji}
+            alt=""
+            className="hidden md:block w-8 h-8 rounded-full object-cover"
+          />
+        ) : (
+          <span
+            className="hidden md:flex w-8 h-8 rounded-full items-center justify-center text-xs font-bold text-white"
+            style={{ background: 'linear-gradient(135deg,#FF9EBB,#C3A6E8)' }}
+          >
+            {initial}
+          </span>
+        )}
       </div>
     </header>
   )

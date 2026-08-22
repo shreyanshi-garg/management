@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useSpace } from '../../context/SpaceContext'
 import { useAuth } from '../../context/AuthContext'
 import SpaceSettingsModal from '../spaces/SpaceSettingsModal'
+import Symbol from '../shared/Symbol'
 
 const NAV = [
   { id: 'dashboard', emoji: '🌸', label: 'Home' },
@@ -37,7 +38,7 @@ export function SpaceSwitcher({ compact = false }) {
             className="flex items-center gap-1.5"
             title="Switch space"
           >
-            <span className="text-xl">{activeSpace.emoji}</span>
+            <Symbol value={activeSpace.emoji} size={22} fallback="🌟" />
             <span className="text-[13px] font-semibold truncate max-w-[90px]" style={{ fontFamily: 'Fraunces, serif', color: '#4A3A30' }}>
               {activeSpace.name}
             </span>
@@ -69,7 +70,7 @@ export function SpaceSwitcher({ compact = false }) {
   return (
     <>
       <div className="px-5 py-5 flex items-center gap-2.5">
-        <span className="text-2xl floaty">{activeSpace.emoji}</span>
+        <Symbol value={activeSpace.emoji} size={26} className="floaty" fallback="🌟" />
         <div className="hidden md:flex flex-col flex-1 min-w-0">
           <p className="text-[15px] font-semibold truncate" style={{ fontFamily: 'Fraunces, serif', color: '#4A3A30' }}>
             {activeSpace.name}

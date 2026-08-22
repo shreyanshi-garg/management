@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { useSpace } from '../../context/SpaceContext'
 import { useAuth } from '../../context/AuthContext'
+import EmojiPicker from '../shared/EmojiPicker'
+import Symbol from '../shared/Symbol'
 
 function Section({ title, children }) {
   return (
@@ -36,7 +38,7 @@ function Btn({ children, disabled, type = 'button' }) {
 }
 
 export default function SpaceSettingsModal({ space, onClose }) {
-  const { deleteSpace, spaces, membersOf, isOwnerOf, addMember, removeMember } = useSpace()
+  const { deleteSpace, updateSpace, spaces, membersOf, isOwnerOf, addMember, removeMember } = useSpace()
   const { email: myEmail } = useAuth()
 
   const members = membersOf(space.id)
@@ -48,7 +50,25 @@ export default function SpaceSettingsModal({ space, onClose }) {
   const [success, setSuccess] = useState('')
   const [loading, setLoading] = useState(false)
 
+  const [idName, setIdName] = useState(space.name)
+  const [idEmoji, setIdEmoji] = useState(space.emoji || '🌟')
+  const [showPicker, setShowPicker] = useState(false)
+  const [savingId, setSavingId] = useState(false)
+
   const msg = (e = '', s = '') => { setError(e); setSuccess(s) }
+
+  const identityChanged = idName.trim() !== space.name || idEmoji !== (space.emoji || '🌟')
+
+  const handleSaveIdentity = async (e) => {
+    e.preventDefault()
+    msg()
+    if (!idName.trim()) return
+    setSavingId(true)
+    const res = await updateSpace(space.id, { name: idName.trim(), emoji: idEmoji })
+    setSavingId(false)
+    if (res.ok) { setShowPicker(false); msg('', 'Space updated') }
+    else msg(res.error)
+  }
 
   const handleAdd = async (e) => {
     e.preventDefault()
@@ -82,12 +102,37 @@ export default function SpaceSettingsModal({ space, onClose }) {
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(74,58,48,0.35)', backdropFilter: 'blur(6px)' }}>
       <div className="rounded-3xl shadow-2xl w-full max-w-sm p-7 flex flex-col gap-5" style={{ background: '#fff', border: '1px solid #F4EADC', maxHeight: '90vh', overflowY: 'auto' }}>
         <div className="flex items-center gap-3">
-          <span className="text-3xl">{space.emoji}</span>
+          <Symbol value={space.emoji} size={36} fallback="🌟" />
           <div>
             <p className="font-semibold text-base" style={{ fontFamily: 'Fraunces, serif', color: '#4A3A30' }}>{space.name}</p>
             <p className="text-xs" style={{ color: '#9C8877' }}>Space settings</p>
           </div>
         </div>
+
+        {isOwner && (
+          <form onSubmit={handleSaveIdentity} className="flex flex-col gap-3">
+            <Section title="Name & picture">
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowPicker(p => !p)}
+                  aria-label="Choose a picture or symbol for this space"
+                  className="w-12 h-[42px] rounded-xl flex items-center justify-center shrink-0 transition-all hover:scale-105"
+                  style={{ border: showPicker ? '1.5px solid #E5527A' : '1.5px solid #F4EADC', background: '#FFFDFB' }}
+                >
+                  <Symbol value={idEmoji} size={22} fallback="🌟" />
+                </button>
+                <Input value={idName} onChange={e => setIdName(e.target.value)} placeholder="Space name" />
+              </div>
+              {showPicker && <EmojiPicker selected={idEmoji} onSelect={setIdEmoji} />}
+            </Section>
+            {identityChanged && (
+              <Btn type="submit" disabled={savingId || !idName.trim()}>
+                {savingId ? 'Saving…' : 'Save changes'}
+              </Btn>
+            )}
+          </form>
+        )}
 
         <Section title={`Members (${members.length})`}>
           <div className="flex flex-col gap-2">

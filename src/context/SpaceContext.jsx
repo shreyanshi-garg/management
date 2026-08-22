@@ -72,6 +72,23 @@ export function SpaceProvider({ children }) {
     switchSpace(id)
   }
 
+  // `emoji` is a text column, so it happily holds a kaomoji or an image data URL
+  // alongside a plain emoji. RLS rejects a non-owner's update.
+  const updateSpace = async (id, { name, emoji }) => {
+    const patch = {}
+    if (name !== undefined) patch.name = name
+    if (emoji !== undefined) patch.emoji = emoji
+    if (!Object.keys(patch).length) return { ok: true }
+
+    const { data, error: err } = await supabase
+      .from('spaces').update(patch).eq('id', id)
+      .select('id, name, emoji').single()
+    if (err) return { ok: false, error: err.message }
+
+    setSpaces(prev => prev.map(s => s.id === id ? rowToSpace(data) : s))
+    return { ok: true }
+  }
+
   const deleteSpace = async (id) => {
     if (spaces.length <= 1) return
     const { error: err } = await supabase.from('spaces').delete().eq('id', id)
@@ -121,6 +138,7 @@ export function SpaceProvider({ children }) {
       switchSpace,
       exitSpace,
       addSpace,
+      updateSpace,
       deleteSpace,
       membersOf,
       isOwnerOf,

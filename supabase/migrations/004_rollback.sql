@@ -55,3 +55,15 @@
 --     execute format('alter table %I disable row level security', t);
 --   end loop;
 -- end $$;
+
+-- ---------------------------------------------------------------------------
+-- 5. Undo 005_symbols_and_done.sql.
+--
+-- Drops the per-task symbol, the completion stamp, and persisted time-block
+-- completion. The app falls back to category emoji and loses done-state on
+-- reload again, so only run this if 005 caused a problem.
+-- ---------------------------------------------------------------------------
+
+-- alter table tasks       drop column if exists emoji;
+-- alter table tasks       drop column if exists completed_at;
+-- alter table time_blocks drop column if exists done;
